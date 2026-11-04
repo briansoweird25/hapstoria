@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { signPaths } from "@/lib/media";
+import { getAlbumStatus } from "@/lib/album";
+import { albumAcceptsUploads } from "@/lib/billing";
 import { getPublicEvent } from "@/lib/public-event";
 import { getTemplate } from "@/lib/templates";
 
@@ -15,6 +17,14 @@ export default async function AlbumPage({ params }: PageProps<"/e/[slug]/album">
   if (!e) notFound();
   const t = getTemplate(e.template_id);
   const admin = createAdminClient();
+  const { data: row } = await admin.from("events").select("owner_id,premium,premium_at,created_at").eq("id", e.id).single();
+  if (!row || !albumAcceptsUploads((await getAlbumStatus(row, admin)).state)) {
+    return (
+      <main className="grid min-h-screen place-items-center px-4" style={{ background: t.palette.bg, color: t.palette.text }}>
+        <p className="max-w-sm text-center font-serif text-2xl">This album is no longer available. Please ask the host.</p>
+      </main>
+    );
+  }
   const { data } = await admin.from("uploads").select("*").eq("event_id", e.id).eq("status", "approved").order("created_at");
   const items = data ?? [];
   const urls = await signPaths(items.map((u) => u.storage_path).filter((p): p is string => Boolean(p)), 3600);

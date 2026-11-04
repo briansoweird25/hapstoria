@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { getUserTier } from "@/lib/album";
+import { canCreateEvent } from "@/lib/billing";
 import { parseGuestList } from "@/lib/guest-import";
 import { slugify, withSuffix } from "@/lib/slug";
 import { eventInputSchema } from "@/lib/validation";
@@ -45,6 +47,13 @@ export async function saveEvent(
     redirect(`/dashboard/events/${eventId}`);
   }
 
+  const [{ data: existing }, tier] = await Promise.all([
+    supabase.from("events").select("premium"),
+    getUserTier(supabase, user.id),
+  ]);
+  const allowed = canCreateEvent({ events: existing ?? [], tier });
+  if (!allowed.ok) return { error: allowed.reason };
+
   const base = slugify(input.title);
   for (let attempt = 0; attempt < 5; attempt++) {
     const slug = withSuffix(base); // random suffix keeps public links hard to guess
@@ -86,12 +95,13 @@ export async function importGuests(eventId: string, formData: FormData) {
   const { supabase } = await requireUser();
   const { guests } = parseGuestList(String(formData.get("list") ?? ""));
   if (guests.length) {
-    await supabase
+    const { error } = await supabase
       .from("guests")
       .upsert(
         guests.map((g) => ({ ...g, event_id: eventId })),
         { onConflict: "event_id,name_key", ignoreDuplicates: true },
       );
+    if (error) redirect(`/dashboard/events/${eventId}?notice=${error.message.includes("guest_limit") ? "guest_limit" : "import_failed"}`);
   }
   revalidatePath(`/dashboard/events/${eventId}`);
 }

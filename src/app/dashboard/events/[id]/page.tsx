@@ -5,9 +5,11 @@ import QRCode from "qrcode";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CopyButton } from "@/components/copy-button";
 import { requireUser } from "@/lib/auth";
+import { getAlbumStatus } from "@/lib/album";
 import { env } from "@/lib/env";
 import { formatEventDate } from "@/lib/format";
 import { summarizeGuests } from "@/lib/stats";
+import { buyPremium } from "../../billing/actions";
 import { deleteEvent, importGuests, removeGuest, setPublished } from "../actions";
 
 export const metadata: Metadata = { title: "Event" };
@@ -31,6 +33,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
     supabase.from("uploads").select("id", { count: "exact", head: true }).eq("event_id", id).eq("status", "pending"),
   ]);
 
+  const album = await getAlbumStatus(event, supabase);
   const all = guests ?? [];
   const summary = summarizeGuests(all);
   const shown = filter === "all" ? all : all.filter((g) => g.status === filter);
@@ -55,6 +58,30 @@ export default async function EventDashboard({ params, searchParams }: PageProps
           </form>
         </div>
       </div>
+
+      {sp.notice && (
+        <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
+          {sp.notice === "guest_limit" ? "The free plan allows 30 guests. Upgrade to Premium to add more." : "Could not import that list."}
+        </p>
+      )}
+      <section aria-label="Plan" className="card flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="label">{event.premium ? "Premium event" : "Free plan · up to 30 guests"}</p>
+          <p className="text-sm">
+            {album.state === "kept" && "Your Memory Keeper plan keeps this album safe."}
+            {album.state === "active" && `Album stays online for ${album.daysLeft} more days.`}
+            {album.state === "expiring" && `Album expires in ${album.daysLeft} days. Download everything or subscribe to Memory Keeper.`}
+            {album.state === "grace" && "Album has expired and will be deleted soon. Download your files or subscribe to keep them."}
+            {album.state === "deleted" && "Album files have been removed."}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {!event.premium && (
+            <form action={buyPremium.bind(null, id)}><button className="btn-primary">Upgrade to Premium · $36</button></form>
+          )}
+          {album.state !== "kept" && <Link href="/dashboard/billing" className="btn-ghost">Memory Keeper</Link>}
+        </div>
+      </section>
 
       {!event.published && (
         <p className="rounded-xl bg-lavender-soft p-4 text-sm">This invitation is a draft. Guests can&apos;t open the link until you publish it.</p>

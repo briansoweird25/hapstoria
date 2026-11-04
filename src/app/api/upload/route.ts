@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MEDIA_BUCKET } from "@/lib/media-config";
 import { extensionFor, validateUpload } from "@/lib/upload-rules";
+import { getAlbumStatus } from "@/lib/album";
+import { albumAcceptsUploads } from "@/lib/billing";
 import { ATTEMPTS_PER_HOUR, guestFolder, MAX_UPLOADS_PER_EVENT, uploadRequestSchema } from "@/lib/upload-api";
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -19,13 +21,17 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: event } = await admin
     .from("events")
-    .select("id,owner_id,uploads_enabled,published")
+    .select("id,owner_id,uploads_enabled,published,premium,premium_at,created_at")
     .eq("slug", req.slug)
     .maybeSingle();
   if (!event || !event.published || !event.uploads_enabled) return fail("Uploads are not available for this event.", 404);
 
   const { count } = await admin.from("uploads").select("id", { count: "exact", head: true }).eq("event_id", event.id);
   if ((count ?? 0) >= MAX_UPLOADS_PER_EVENT) return fail("This album is full.", 429);
+
+  if (!albumAcceptsUploads((await getAlbumStatus(event, admin)).state)) {
+    return fail("This album has expired and is no longer accepting uploads.", 410);
+  }
 
   // Throttle anonymous attempts per event (signs and greetings both count).
   const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();

@@ -29,6 +29,7 @@ export default async function MemoriesPage({ params, searchParams }: PageProps<"
         <Link href={`/dashboard/events/${id}`} className="text-sm text-muted hover:text-ink">← {event.title}</Link>
         <h1 className="font-serif text-4xl">Memories</h1>
         <p className="text-sm text-muted">Guests&apos; uploads stay private until you approve them.</p>
+        <a href={`/api/events/${id}/download`} className="btn-soft mt-3">Download everything (.zip)</a>
       </div>
       <nav aria-label="Memory status" className="flex gap-2">
         {(["pending", "approved", "hidden"] as const).map((t) => (

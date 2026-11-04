@@ -8,6 +8,7 @@ export type RsvpState = { ok: boolean; error?: string; name?: string; status?: "
 const ERRORS: Record<string, string> = {
   rsvp_closed: "Sorry, RSVPs for this event have closed.",
   event_not_found: "This invitation isn't available.",
+  guest_limit: "Sorry, this guest list is full.",
   invalid_party_size: "That's more guests than the host allows.",
 };
 
