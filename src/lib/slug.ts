@@ -13,6 +13,7 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   if (s.length > 60) s = s.slice(0, 60).replace(/-+$/g, "");
+  if (!/^[a-z0-9]/.test(s)) s = "event"; // non-latin / emoji-only titles
   if (s.length < 3) s = (s + "-event").slice(0, 60);
   return s;
 }

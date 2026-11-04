@@ -13,12 +13,14 @@ create table public.events (
   theme jsonb not null default '{}'::jsonb,
   host_names text not null default '',
   starts_at timestamptz,
+  timezone text not null default 'UTC',
   venue_name text not null default '',
   venue_address text not null default '',
   message text not null default '',
   dress_code text not null default '',
   cover_path text,
   cover_kind text check (cover_kind in ('image','gif','video')),
+  constraint events_cover_owner_chk check (cover_path is null or cover_path like owner_id::text || '/%'),
   meal_options text[] not null default '{}',
   rsvp_deadline timestamptz,
   max_plus_ones int not null default 4 check (max_plus_ones between 0 and 20),
@@ -63,6 +65,36 @@ create table public.uploads (
   )
 );
 create index uploads_event_idx on public.uploads(event_id, status);
+create unique index uploads_storage_path_uidx on public.uploads(storage_path) where storage_path is not null;
+
+-- Uploaded files must live in the event owner's folder for that event, so a
+-- tampered row can never point the server at another tenant's private file.
+create or replace function public.uploads_check_path() returns trigger
+language plpgsql as $$
+declare owner uuid;
+begin
+  if new.storage_path is not null then
+    select owner_id into owner from public.events where id = new.event_id;
+    if new.storage_path not like owner::text || '/' || new.event_id::text || '/%' then
+      raise exception 'invalid_storage_path';
+    end if;
+  end if;
+  return new;
+end $$;
+create trigger uploads_path_chk before insert or update of storage_path, event_id on public.uploads
+  for each row execute function public.uploads_check_path();
+
+-- Every anonymous upload attempt (sign or greeting) is logged to throttle abuse
+-- and to find orphaned files (signed but never completed).
+create table public.upload_attempts (
+  id bigint generated always as identity primary key,
+  event_id uuid not null references public.events(id) on delete cascade,
+  storage_path text,
+  completed boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index upload_attempts_event_time_idx on public.upload_attempts(event_id, created_at desc);
+alter table public.upload_attempts enable row level security; -- no policies: service role only
 
 create or replace function public.touch_updated_at() returns trigger
 language plpgsql as $$ begin new.updated_at = now(); return new; end $$;
@@ -90,14 +122,14 @@ create policy uploads_owner_all on public.uploads
 create or replace function public.get_public_event(p_slug text)
 returns table (
   id uuid, slug text, title text, kind text, template_id text, theme jsonb,
-  host_names text, starts_at timestamptz, venue_name text, venue_address text,
+  host_names text, starts_at timestamptz, timezone text, venue_name text, venue_address text,
   message text, dress_code text, cover_path text, cover_kind text,
   meal_options text[], rsvp_deadline timestamptz, max_plus_ones int,
   uploads_enabled boolean
 )
 language sql security definer set search_path = public as $$
   select e.id, e.slug, e.title, e.kind, e.template_id, e.theme, e.host_names,
-         e.starts_at, e.venue_name, e.venue_address, e.message, e.dress_code,
+         e.starts_at, e.timezone, e.venue_name, e.venue_address, e.message, e.dress_code,
          e.cover_path, e.cover_kind, e.meal_options, e.rsvp_deadline,
          e.max_plus_ones, e.uploads_enabled
   from public.events e where e.slug = p_slug and e.published
@@ -120,6 +152,12 @@ begin
     raise exception 'invalid_name';
   end if;
   if p_status not in ('accepted','declined') then raise exception 'invalid_status'; end if;
+  if char_length(coalesce(p_email,'')) > 200 or char_length(coalesce(p_meal,'')) > 60 then
+    raise exception 'invalid_input';
+  end if;
+  if nullif(btrim(p_meal), '') is not null and not (btrim(p_meal) = any(ev.meal_options)) then
+    raise exception 'invalid_meal';
+  end if;
   if p_status = 'accepted' and (p_party_size < 1 or p_party_size > ev.max_plus_ones + 1) then
     raise exception 'invalid_party_size';
   end if;

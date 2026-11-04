@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MEDIA_BUCKET } from "@/lib/media-config";
 import { extensionFor, validateUpload } from "@/lib/upload-rules";
-import { guestFolder, MAX_UPLOADS_PER_EVENT, uploadRequestSchema } from "@/lib/upload-api";
+import { ATTEMPTS_PER_HOUR, guestFolder, MAX_UPLOADS_PER_EVENT, uploadRequestSchema } from "@/lib/upload-api";
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
 
@@ -27,9 +27,19 @@ export async function POST(request: Request) {
   const { count } = await admin.from("uploads").select("id", { count: "exact", head: true }).eq("event_id", event.id);
   if ((count ?? 0) >= MAX_UPLOADS_PER_EVENT) return fail("This album is full.", 429);
 
+  // Throttle anonymous attempts per event (signs and greetings both count).
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recent } = await admin
+    .from("upload_attempts").select("id", { count: "exact", head: true })
+    .eq("event_id", event.id).gte("created_at", since);
+  if ((recent ?? 0) >= ATTEMPTS_PER_HOUR && req.action !== "complete") {
+    return fail("Too many uploads right now. Please try again later.", 429);
+  }
+
   const folder = guestFolder(event.owner_id, event.id);
 
   if (req.action === "greeting") {
+    await admin.from("upload_attempts").insert({ event_id: event.id, completed: true });
     const { error } = await admin.from("uploads").insert({
       event_id: event.id, uploader_name: req.name, kind: "greeting", greeting_text: req.text,
     });
@@ -42,12 +52,17 @@ export async function POST(request: Request) {
     const path = `${folder}/${crypto.randomUUID()}.${extensionFor(req.type)}`;
     const { data, error } = await admin.storage.from(MEDIA_BUCKET).createSignedUploadUrl(path);
     if (error || !data) return fail("Could not start the upload.", 500);
+    await admin.from("upload_attempts").insert({ event_id: event.id, storage_path: path });
     return NextResponse.json({ path, token: data.token });
   }
 
   // action === "complete"
   if (!req.path.startsWith(`${folder}/`) || req.path.slice(folder.length + 1).includes("/")) return fail("Invalid file.");
   const fileName = req.path.slice(folder.length + 1);
+  // Only paths this server signed for this event can be completed.
+  const { data: attempt } = await admin
+    .from("upload_attempts").select("id").eq("event_id", event.id).eq("storage_path", req.path).maybeSingle();
+  if (!attempt) return fail("Invalid file.");
   const { data: files } = await admin.storage.from(MEDIA_BUCKET).list(folder, { search: fileName, limit: 1 });
   const file = files?.find((f) => f.name === fileName);
   if (!file) return fail("The file was not uploaded.");
@@ -61,5 +76,7 @@ export async function POST(request: Request) {
   const { error } = await admin.from("uploads").insert({
     event_id: event.id, uploader_name: req.name || "Guest", kind: check.kind, storage_path: req.path, size_bytes: size,
   });
-  return error ? fail("Could not save your upload.", 500) : NextResponse.json({ ok: true });
+  if (error && error.code !== "23505") return fail("Could not save your upload.", 500); // 23505: already completed
+  await admin.from("upload_attempts").update({ completed: true }).eq("id", attempt.id);
+  return NextResponse.json({ ok: true });
 }

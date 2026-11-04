@@ -32,3 +32,9 @@ export function guestFolder(ownerId: string, eventId: string) {
 
 /** Hard cap on items per event to bound abuse of the anonymous upload endpoint. */
 export const MAX_UPLOADS_PER_EVENT = 2000;
+
+/** Max anonymous upload attempts (sign + greeting) per event per hour. */
+export const ATTEMPTS_PER_HOUR = 400;
+
+/** Signed-but-never-completed files older than this are deleted by the cleanup job. */
+export const ORPHAN_AGE_MS = 2 * 60 * 60 * 1000;

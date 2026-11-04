@@ -11,7 +11,7 @@ export default async function NewEventPage({ searchParams }: PageProps<"/dashboa
   const sp = await searchParams;
   const tpl = getTemplate(typeof sp.template === "string" ? sp.template : "classic-gold");
   const initial: EventFormValues = {
-    title: "", kind: tpl.kind, template_id: tpl.id, host_names: "", starts_at: null, venue_name: "",
+    title: "", kind: tpl.kind, template_id: tpl.id, host_names: "", starts_at: null, timezone: "UTC", venue_name: "",
     venue_address: "", message: "", dress_code: "", meal_options: [], rsvp_deadline: null,
     max_plus_ones: 4, uploads_enabled: true, cover_path: null, cover_kind: null, coverUrl: null,
   };

@@ -27,6 +27,7 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key |
    | `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
    | `NEXT_PUBLIC_SITE_URL` | your Vercel/production URL, no trailing slash |
+   | `CRON_SECRET` | any long random string (protects the nightly cleanup job) |
 
 3. Deploy. Then update Supabase's Site URL (step 1.5) if the URL changed.
 

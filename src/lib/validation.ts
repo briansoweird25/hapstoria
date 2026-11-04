@@ -16,6 +16,7 @@ export const eventInputSchema = z.object({
   kind: z.string().trim().min(1).max(40).default("birthday"),
   template_id: z.string().trim().min(1).max(60).default("classic-gold"),
   host_names: trimmed(160).default(""),
+  timezone: z.string().trim().max(64).default("UTC"),
   starts_at: z.preprocess(emptyToNull, z.string().datetime({ local: true, offset: true }).nullable().default(null)),
   venue_name: trimmed(160).default(""),
   venue_address: trimmed(300).default(""),

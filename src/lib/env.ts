@@ -14,6 +14,9 @@ export const env = {
     return required("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY);
   },
   get siteUrl() {
-    return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+    const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    const url = explicit ?? (vercel ? `https://${vercel}` : "http://localhost:3000");
+    return url.replace(/\/$/, "");
   },
 };

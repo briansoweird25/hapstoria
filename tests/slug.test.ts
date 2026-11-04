@@ -24,3 +24,9 @@ describe("slug", () => {
     expect(isValidSlug("ok-slug-1")).toBe(true);
   });
 });
+
+describe("slug edge cases", () => {
+  it("produces a valid slug for non-latin or emoji-only titles", () => {
+    for (const t of ["婚礼", "!!", "🎉🎉", "حفل"]) expect(isValidSlug(slugify(t))).toBe(true);
+  });
+});

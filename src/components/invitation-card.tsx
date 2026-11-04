@@ -6,6 +6,7 @@ export interface InvitationData {
   template_id: string;
   host_names?: string;
   starts_at?: string | null;
+  timezone?: string | null;
   venue_name?: string;
   venue_address?: string;
   message?: string;
@@ -18,7 +19,7 @@ export interface InvitationData {
 export function InvitationCard({ data, compact = false }: { data: InvitationData; compact?: boolean }) {
   const t = getTemplate(data.template_id);
   const heading = { fontFamily: FONT_STACKS[t.font] };
-  const when = formatEventDate(data.starts_at);
+  const when = formatEventDate(data.starts_at, data.timezone);
   return (
     <article
       className="overflow-hidden rounded-3xl border shadow-sm"

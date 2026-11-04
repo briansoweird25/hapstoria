@@ -43,7 +43,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-serif text-4xl">{event.title}</h1>
-          <p className="text-sm text-muted">{formatEventDate(event.starts_at) || "Date not set"}</p>
+          <p className="text-sm text-muted">{formatEventDate(event.starts_at, event.timezone) || "Date not set"}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/dashboard/events/${id}/edit`} className="btn-ghost">Edit</Link>

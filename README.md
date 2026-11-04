@@ -55,3 +55,13 @@ Security model
 2. Collage and slideshow templates (render via a video API such as Shotstack/Creatomate).
 3. Gift registry (bank/GCash QR, PayPal links, anonymous giving), seating plan, budget.
 4. Printed invitations (Gelato API), planner workspace, creator marketplace.
+
+## Known limitations (deliberate, documented)
+
+- **RSVP identity is by name.** A guest typing another guest's name updates that reply. Acceptable for an
+  invite-link model; per-guest personal links are the planned upgrade.
+- **No per-IP rate limiting.** Anonymous uploads are throttled per event (400 attempts/hour, 2,000 items),
+  and abandoned signed uploads are deleted nightly by `/api/cron/cleanup`. Add an IP limiter (Upstash/Vercel KV) before a public launch.
+- **Event timezone** is captured from the host's browser when the event is first saved.
+- HEIC uploads rely on the browser reporting a MIME type; some browsers report none.
+- Old cover images are not deleted when replaced (cleaned up when the event is deleted).

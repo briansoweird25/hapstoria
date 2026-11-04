@@ -47,7 +47,7 @@ export async function saveEvent(
 
   const base = slugify(input.title);
   for (let attempt = 0; attempt < 5; attempt++) {
-    const slug = attempt === 0 ? base : withSuffix(base);
+    const slug = withSuffix(base); // random suffix keeps public links hard to guess
     const { data, error } = await supabase
       .from("events")
       .insert({ ...row, slug, owner_id: user.id })
@@ -69,8 +69,15 @@ export async function deleteEvent(eventId: string) {
   const { supabase, user } = await requireUser();
   // Remove guest-uploaded files first (rows cascade with the event).
   const folder = `${user.id}/${eventId}`;
-  const { data: files } = await supabase.storage.from(MEDIA_BUCKET).list(folder, { limit: 1000 });
-  if (files?.length) await supabase.storage.from(MEDIA_BUCKET).remove(files.map((f) => `${folder}/${f.name}`));
+  const { data: ev } = await supabase.from("events").select("cover_path").eq("id", eventId).maybeSingle();
+  const paths: string[] = ev?.cover_path ? [ev.cover_path] : [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data: files } = await supabase.storage.from(MEDIA_BUCKET).list(folder, { limit: 1000, offset });
+    if (!files?.length) break;
+    paths.push(...files.map((f) => `${folder}/${f.name}`));
+    if (files.length < 1000) break;
+  }
+  for (let i = 0; i < paths.length; i += 500) await supabase.storage.from(MEDIA_BUCKET).remove(paths.slice(i, i + 500));
   await supabase.from("events").delete().eq("id", eventId);
   redirect("/dashboard");
 }
@@ -101,9 +108,10 @@ export async function moderateUpload(eventId: string, uploadId: string, status: 
   revalidatePath(`/dashboard/events/${eventId}/memories`);
 }
 
-export async function deleteUpload(eventId: string, uploadId: string, storagePath: string | null) {
+export async function deleteUpload(eventId: string, uploadId: string) {
   const { supabase } = await requireUser();
-  const { error } = await supabase.from("uploads").delete().eq("id", uploadId).eq("event_id", eventId);
-  if (!error && storagePath) await supabase.storage.from(MEDIA_BUCKET).remove([storagePath]);
+  // Take the storage path from the row itself, never from client-supplied arguments.
+  const { data } = await supabase.from("uploads").delete().eq("id", uploadId).eq("event_id", eventId).select("storage_path").maybeSingle();
+  if (data?.storage_path) await supabase.storage.from(MEDIA_BUCKET).remove([data.storage_path]);
   revalidatePath(`/dashboard/events/${eventId}/memories`);
 }

@@ -61,7 +61,7 @@ export default async function MemoriesPage({ params, searchParams }: PageProps<"
                     <form action={moderateUpload.bind(null, id, u.id, "hidden")}><button className="btn-ghost px-3 py-1.5">Hide</button></form>
                   )}
                   {url && <a className="btn-ghost px-3 py-1.5" href={url} download>Download</a>}
-                  <form action={deleteUpload.bind(null, id, u.id, u.storage_path)}>
+                  <form action={deleteUpload.bind(null, id, u.id)}>
                     <ConfirmButton className="btn-danger px-3 py-1.5" message="Delete this permanently?">Delete</ConfirmButton>
                   </form>
                 </div>

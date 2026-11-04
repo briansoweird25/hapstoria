@@ -9,7 +9,7 @@ export default async function DashboardPage() {
   const { supabase } = await requireUser();
   const { data: events } = await supabase
     .from("events")
-    .select("id,title,kind,starts_at,published,guests(count)")
+    .select("id,title,kind,starts_at,timezone,published,guests(count)")
     .order("created_at", { ascending: false });
 
   return (
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
                   {e.published ? "Published" : "Draft"}
                 </span>
                 <h2 className="mt-3 font-serif text-2xl">{e.title}</h2>
-                <p className="text-sm text-muted">{formatEventDate(e.starts_at) || "Date not set"}</p>
+                <p className="text-sm text-muted">{formatEventDate(e.starts_at, e.timezone) || "Date not set"}</p>
                 <p className="mt-3 text-xs text-muted">{e.guests?.[0]?.count ?? 0} guests on the list</p>
               </Link>
             </li>
