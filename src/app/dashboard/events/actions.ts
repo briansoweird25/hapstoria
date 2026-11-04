@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/send";
 import { rsvpReminderEmail } from "@/lib/email/templates";
 import { reminderGuests } from "@/lib/reminders";
@@ -52,7 +53,7 @@ export async function saveEvent(
   }
 
   const [{ data: existing }, tier] = await Promise.all([
-    supabase.from("events").select("premium"),
+    supabase.from("events").select("premium").eq("owner_id", user.id), // only events they own count toward limits
     getUserTier(supabase, user.id),
   ]);
   const allowed = canCreateEvent({ events: existing ?? [], tier });
@@ -126,7 +127,9 @@ export async function deleteUpload(eventId: string, uploadId: string) {
   const { supabase } = await requireUser();
   // Take the storage path from the row itself, never from client-supplied arguments.
   const { data } = await supabase.from("uploads").delete().eq("id", uploadId).eq("event_id", eventId).select("storage_path").maybeSingle();
-  if (data?.storage_path) await supabase.storage.from(MEDIA_BUCKET).remove([data.storage_path]);
+  // Editors aren't the owner of the storage folder, so the file is removed with the service role
+  // (only after the RLS-checked row delete above succeeded).
+  if (data?.storage_path) await createAdminClient().storage.from(MEDIA_BUCKET).remove([data.storage_path]);
   revalidatePath(`/dashboard/events/${eventId}/memories`);
 }
 

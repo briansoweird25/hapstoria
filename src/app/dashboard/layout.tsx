@@ -10,6 +10,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Logo href="/dashboard" />
           <nav className="flex items-center gap-3 text-sm">
+            <Link href="/dashboard/planner" className="text-muted hover:text-ink">Planner</Link>
             <Link href="/dashboard/billing" className="text-muted hover:text-ink">Billing</Link>
             <Link href="/dashboard/events/new" className="btn-soft">New event</Link>
             <span className="hidden text-muted sm:block">{user.email}</span>

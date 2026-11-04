@@ -5,7 +5,14 @@ import { InvitationCard } from "@/components/invitation-card";
 import { RsvpForm } from "@/components/rsvp-form";
 import { getPublicEvent } from "@/lib/public-event";
 import { getPublicGifts } from "@/lib/public-gifts";
+import { createClient } from "@/lib/supabase/server";
 import { getTemplate } from "@/lib/templates";
+
+async function getBranding(slug: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("get_event_branding", { p_slug: slug });
+  return (data as { business_name: string; brand_color: string }[] | null)?.[0] ?? null;
+}
 
 export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -16,6 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Prom
 export default async function InvitationPage({ params }: PageProps<"/e/[slug]">) {
   const { slug } = await params;
   const [e, gifts] = await Promise.all([getPublicEvent(slug), getPublicGifts(slug)]);
+  const branding = e ? await getBranding(slug) : null;
   if (!e) notFound();
   const t = getTemplate(e.template_id);
   const closed = e.rsvp_deadline ? new Date(e.rsvp_deadline) < new Date() : false;
@@ -34,7 +42,9 @@ export default async function InvitationPage({ params }: PageProps<"/e/[slug]">)
             <Link href={`/e/${slug}/album`} className="text-sm underline opacity-70">View the album</Link>
           </div>
         )}
-        <p className="pt-2 text-center text-[11px] tracking-[0.25em] opacity-50">HAPSTORIA</p>
+        <p className="pt-2 text-center text-[11px] tracking-[0.25em] opacity-60" style={branding ? { color: branding.brand_color } : undefined}>
+          {branding ? branding.business_name.toUpperCase() : "HAPSTORIA"}
+        </p>
       </div>
     </main>
   );

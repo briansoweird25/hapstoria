@@ -33,7 +33,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
   const { id } = await params;
   const sp = await searchParams;
   const filter = typeof sp.status === "string" ? sp.status : "all";
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
 
   const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!event) notFound();
@@ -67,6 +67,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
           <Link href={`/dashboard/events/${id}/gifts`} className="btn-ghost">Gifts</Link>
           <Link href={`/dashboard/events/${id}/seating`} className="btn-ghost">Seating</Link>
           <Link href={`/dashboard/events/${id}/budget`} className="btn-ghost">Budget</Link>
+          <Link href={`/dashboard/events/${id}/team`} className="btn-ghost">Team</Link>
           <form action={setPublished.bind(null, id, !event.published)}>
             <button className={event.published ? "btn-ghost" : "btn-primary"}>{event.published ? "Unpublish" : "Publish invitation"}</button>
           </form>
@@ -90,7 +91,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
           </p>
         </div>
         <div className="flex gap-2">
-          {!event.premium && (
+          {!event.premium && event.owner_id === user.id && (
             <form action={buyPremium.bind(null, id)}><button className="btn-primary">Upgrade to Premium · $36</button></form>
           )}
           {album.state !== "kept" && <Link href="/dashboard/billing" className="btn-ghost">Memory Keeper</Link>}
@@ -183,9 +184,11 @@ export default async function EventDashboard({ params, searchParams }: PageProps
               </ul>
             </section>
           )}
-          <form action={deleteEvent.bind(null, id)}>
-            <ConfirmButton className="btn-danger w-full" message="Delete this event, its guest list and all uploads? This cannot be undone.">Delete event</ConfirmButton>
-          </form>
+          {event.owner_id === user.id && (
+            <form action={deleteEvent.bind(null, id)}>
+              <ConfirmButton className="btn-danger w-full" message="Delete this event, its guest list and all uploads? This cannot be undone.">Delete event</ConfirmButton>
+            </form>
+          )}
         </aside>
       </div>
     </div>
