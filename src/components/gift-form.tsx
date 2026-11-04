@@ -26,7 +26,10 @@ export function GiftForm({ slug, gifts }: { slug: string; gifts: PublicGifts }) 
                 <p className="font-medium">{m.label}</p>
                 {m.details && <p className="whitespace-pre-line text-sm opacity-80">{m.details}</p>}
                 {m.url && <a href={m.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm underline">Open payment link</a>}
-                {m.qrUrl && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.qrUrl} alt={`${m.label} QR code`} className="mt-2 size-44 rounded-lg bg-white object-contain p-2" />}
+                {m.qrUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.qrUrl} alt={`${m.label} QR code`} className="mt-2 size-44 rounded-lg bg-white object-contain p-2" />
+                )}
               </li>
             ))}
           </ul>
