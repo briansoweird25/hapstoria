@@ -63,6 +63,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
             Memories{pendingUploads ? ` (${pendingUploads} to review)` : ""}
           </Link>
           <Link href={`/dashboard/events/${id}/collage`} className="btn-ghost">Collage</Link>
+          <Link href={`/dashboard/events/${id}/print`} className="btn-ghost">Print cards</Link>
           <form action={setPublished.bind(null, id, !event.published)}>
             <button className={event.published ? "btn-ghost" : "btn-primary"}>{event.published ? "Unpublish" : "Publish invitation"}</button>
           </form>

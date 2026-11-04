@@ -6,12 +6,12 @@ import { requireUser } from "@/lib/auth";
 import { PRICES, subscriptionAmount, type Interval, type Tier } from "@/lib/billing";
 import { env } from "@/lib/env";
 import { getStripe, stripeConfigured } from "@/lib/stripe/client";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const tierSchema = z.enum(["keeper", "keeper_plus", "planner"]);
 const intervalSchema = z.enum(["month", "year"]);
 
 async function existingCustomerId(userId: string): Promise<string | undefined> {
-  const { createAdminClient } = await import("@/lib/supabase/admin");
   const { data } = await createAdminClient().from("subscriptions").select("stripe_customer_id").eq("user_id", userId).limit(1).maybeSingle();
   return data?.stripe_customer_id;
 }
@@ -35,7 +35,8 @@ export async function buyPremium(eventId: string) {
     success_url: `${env.siteUrl}/dashboard/events/${eventId}?upgraded=1`,
     cancel_url: `${env.siteUrl}/dashboard/events/${eventId}`,
   });
-  const { error } = await supabase.from("orders").insert({
+  // `orders` is service-role-write only (owners can read), so insert with the admin client.
+  const { error } = await createAdminClient().from("orders").insert({
     user_id: user.id, kind: "event_premium", event_id: eventId,
     amount_cents: PRICES.event_premium.cents, stripe_session_id: session.id,
   });
