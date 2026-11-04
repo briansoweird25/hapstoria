@@ -39,12 +39,13 @@ create table public.guests (
   party_size int not null default 1 check (party_size between 0 and 25),
   meal text,
   note text,
+  name_key text generated always as (lower(name)) stored,
   responded_at timestamptz,
   reminded_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index guests_event_idx on public.guests(event_id);
-create unique index guests_event_name_uidx on public.guests(event_id, lower(name));
+alter table public.guests add constraint guests_event_name_key_uniq unique (event_id, name_key);
 
 create table public.uploads (
   id uuid primary key default gen_random_uuid(),
@@ -126,7 +127,7 @@ begin
   values (ev.id, n, nullif(btrim(p_email), ''), p_status,
           case when p_status = 'accepted' then p_party_size else 0 end,
           nullif(btrim(p_meal), ''), left(nullif(btrim(p_note), ''), 500), now())
-  on conflict (event_id, lower(name)) do update set
+  on conflict (event_id, name_key) do update set
     status = excluded.status, party_size = excluded.party_size,
     meal = excluded.meal, note = excluded.note,
     email = coalesce(excluded.email, public.guests.email),

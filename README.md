@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hapstoria
 
-## Getting Started
+*Every celebration has a story.* Digital invitations, RSVPs, and a shared guest album.
 
-First, run the development server:
+**Stack:** Next.js 16 (App Router) · Supabase (Postgres, Auth, Storage) · Vercel
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## What works today
+
+| Area | Status |
+|---|---|
+| Landing page, 20 multicultural templates (stored as structured data) | Done |
+| Passwordless login (email link, Google) | Done |
+| Event editor with live preview, cover photo/GIF/video | Done |
+| Public invitation page + guest RSVP (no account) | Done |
+| Host dashboard: live headcount, meals, guest list, CSV/paste import, share link, QR | Done |
+| Guest photo/video/greeting upload (no account, direct-to-storage) | Done |
+| Host moderation (approve / hide / delete / download) + public album of approved items | Done |
+
+**Not built yet** (see Roadmap): payments and subscriptions (Stripe), storage expiry and reminders,
+collage/slideshow rendering, printed invitations, gift registry, seating/budget, planner workspace,
+creator marketplace. Email sending (RSVP confirmations, reminders) is also not wired up.
+
+## Quick start
+
+1. Follow [SETUP.md](SETUP.md) to create the Supabase project and run the migration.
+2. `cp .env.example .env.local` and fill in the values.
+3. `npm install && npm run dev`
+
+Scripts: `npm run dev` · `npm run build` · `npm test` · `npm run lint` · `npm run typecheck`
+
+## Architecture
+
+```
+src/app            Routes (App Router). Server actions live next to their routes (actions.ts).
+src/components     Presentational + form components.
+src/lib            Pure, unit-tested logic (validation, slugs, templates, stats, import, upload rules)
+src/lib/supabase   server / browser / admin clients and the auth proxy.
+supabase/migrations  Schema, RLS policies, RPCs, storage policies.
+tests              Vitest unit tests for src/lib.
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Security model
+- Owners access tables through RLS (`owner_id = auth.uid()`).
+- Guests never touch tables. They use two `security definer` RPCs: `get_public_event` (published events only,
+  no owner id) and `submit_rsvp` (validates deadline, party size, and upserts by name).
+- Guest uploads go through `/api/upload` using the service role *only on the server*: it checks the event is
+  published with uploads enabled, signs a one-time upload URL, verifies the stored file's real type/size,
+  and inserts the row as `pending`. Nothing is public until the host approves it.
+- The storage bucket is private; files are shown through short-lived signed URLs.
+- `SUPABASE_SERVICE_ROLE_KEY` is server-only (`import "server-only"`). Never prefix it with `NEXT_PUBLIC_`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Roadmap
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Stripe: Event Pass, Memory Keeper subscriptions, 3-month expiry with reminder emails (Resend).
+2. Collage and slideshow templates (render via a video API such as Shotstack/Creatomate).
+3. Gift registry (bank/GCash QR, PayPal links, anonymous giving), seating plan, budget.
+4. Printed invitations (Gelato API), planner workspace, creator marketplace.

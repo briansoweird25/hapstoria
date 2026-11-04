@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ivory: #faf6ee;
+  --paper: #fffdf8;
+  --ink: #2b2418;
+  --muted: #7a6f5d;
+  --champagne: #b8934a;
+  --champagne-soft: #f1e6cc;
+  --lavender: #8a6fb5;
+  --lavender-soft: #e5dcf2;
+  --blush: #d17a94;
+  --blush-soft: #f8d9e1;
+  --line: #e8dfcc;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ivory: var(--ivory);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-champagne: var(--champagne);
+  --color-champagne-soft: var(--champagne-soft);
+  --color-lavender: var(--lavender);
+  --color-lavender-soft: var(--lavender-soft);
+  --color-blush: var(--blush);
+  --color-blush-soft: var(--blush-soft);
+  --color-line: var(--line);
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-serif: var(--font-serif), Georgia, serif;
+  --font-brand: var(--font-brand), Georgia, serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ivory);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 0.7s ease both; }
+.rise-2 { animation: rise 0.7s 0.12s ease both; }
+.rise-3 { animation: rise 0.7s 0.24s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .rise-2, .rise-3 { animation: none; }
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lavender disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-ink text-ivory hover:bg-champagne;
+}
+@utility btn-soft {
+  @apply btn bg-champagne-soft text-ink hover:bg-blush-soft;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-paper text-ink hover:border-champagne;
+}
+@utility btn-danger {
+  @apply btn border border-red-200 bg-paper text-red-700 hover:bg-red-50;
+}
+@utility card {
+  @apply rounded-2xl border border-line bg-paper p-5 shadow-sm;
+}
+@utility input {
+  @apply w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 text-sm outline-none focus:border-champagne focus:ring-2 focus:ring-champagne-soft;
+}
+@utility label {
+  @apply mb-1 block text-xs font-medium uppercase tracking-wider text-muted;
 }

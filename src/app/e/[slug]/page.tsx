@@ -1,0 +1,39 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { InvitationCard } from "@/components/invitation-card";
+import { RsvpForm } from "@/components/rsvp-form";
+import { getPublicEvent } from "@/lib/public-event";
+import { getTemplate } from "@/lib/templates";
+
+export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const e = await getPublicEvent(slug);
+  return e ? { title: e.title, description: `You're invited to ${e.title}`, robots: { index: false } } : { title: "Invitation" };
+}
+
+export default async function InvitationPage({ params }: PageProps<"/e/[slug]">) {
+  const { slug } = await params;
+  const e = await getPublicEvent(slug);
+  if (!e) notFound();
+  const t = getTemplate(e.template_id);
+  const closed = e.rsvp_deadline ? new Date(e.rsvp_deadline) < new Date() : false;
+  return (
+    <main className="min-h-screen px-4 py-8" style={{ background: t.palette.bg, color: t.palette.text }}>
+      <div className="mx-auto max-w-md space-y-6">
+        <InvitationCard data={{ ...e, coverUrl: e.coverUrl }} />
+        <section className="rounded-3xl border p-6" style={{ background: t.palette.surface, borderColor: t.palette.accentSoft }}>
+          <h2 className="mb-4 text-center text-2xl font-semibold">RSVP</h2>
+          <RsvpForm slug={slug} mealOptions={e.meal_options} maxPlusOnes={e.max_plus_ones} closed={closed} />
+        </section>
+        {e.uploads_enabled && (
+          <div className="flex flex-col gap-2 text-center">
+            <Link href={`/e/${slug}/upload`} className="btn-ghost">Share photos, videos &amp; greetings</Link>
+            <Link href={`/e/${slug}/album`} className="text-sm underline opacity-70">View the album</Link>
+          </div>
+        )}
+        <p className="pt-2 text-center text-[11px] tracking-[0.25em] opacity-50">HAPSTORIA</p>
+      </div>
+    </main>
+  );
+}
