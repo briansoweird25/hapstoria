@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { env } from "@/lib/env";
+import { sendEmail } from "@/lib/email/send";
+import { rsvpReminderEmail } from "@/lib/email/templates";
+import { reminderGuests } from "@/lib/reminders";
 import { getUserTier } from "@/lib/album";
 import { canCreateEvent } from "@/lib/billing";
 import { parseGuestList } from "@/lib/guest-import";
@@ -124,4 +128,23 @@ export async function deleteUpload(eventId: string, uploadId: string) {
   const { data } = await supabase.from("uploads").delete().eq("id", uploadId).eq("event_id", eventId).select("storage_path").maybeSingle();
   if (data?.storage_path) await supabase.storage.from(MEDIA_BUCKET).remove([data.storage_path]);
   revalidatePath(`/dashboard/events/${eventId}/memories`);
+}
+
+export async function sendRsvpReminders(eventId: string) {
+  const { supabase } = await requireUser();
+  const { data: event } = await supabase.from("events").select("title,slug,published").eq("id", eventId).maybeSingle();
+  if (!event || !event.published) redirect(`/dashboard/events/${eventId}?notice=reminder_unpublished`);
+  const { data: guests } = await supabase.from("guests").select("id,name,email,status,reminded_at").eq("event_id", eventId);
+  const due = reminderGuests(guests ?? []);
+  let sent = 0;
+  for (const g of due) {
+    const r = await sendEmail(g.email!, rsvpReminderEmail({ guestName: g.name, eventTitle: event.title, inviteUrl: `${env.siteUrl}/e/${event.slug}` }));
+    if (r.sent) {
+      sent++;
+      await supabase.from("guests").update({ reminded_at: new Date().toISOString() }).eq("id", g.id);
+    } else if (r.reason === "email_not_configured") {
+      redirect(`/dashboard/events/${eventId}?notice=email_unavailable`);
+    }
+  }
+  redirect(`/dashboard/events/${eventId}?notice=reminded_${sent}`);
 }

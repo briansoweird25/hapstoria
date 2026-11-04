@@ -10,7 +10,7 @@ import { env } from "@/lib/env";
 import { formatEventDate } from "@/lib/format";
 import { summarizeGuests } from "@/lib/stats";
 import { buyPremium } from "../../billing/actions";
-import { deleteEvent, importGuests, removeGuest, setPublished } from "../actions";
+import { deleteEvent, importGuests, removeGuest, sendRsvpReminders, setPublished } from "../actions";
 
 export const metadata: Metadata = { title: "Event" };
 
@@ -19,6 +19,15 @@ const STATUS_STYLE = {
   declined: "bg-red-100 text-red-800",
   pending: "bg-champagne-soft text-muted",
 } as const;
+
+function noticeText(n: string): string {
+  if (n === "guest_limit") return "The free plan allows 30 guests. Upgrade to Premium to add more.";
+  if (n === "email_unavailable") return "Email sending isn't set up yet, so no reminders were sent.";
+  if (n === "reminder_unpublished") return "Publish the invitation before sending reminders.";
+  const m = /^reminded_(\d+)$/.exec(n);
+  if (m) return `Reminder sent to ${m[1]} ${m[1] === "1" ? "guest" : "guests"}.`;
+  return "Could not complete that action.";
+}
 
 export default async function EventDashboard({ params, searchParams }: PageProps<"/dashboard/events/[id]">) {
   const { id } = await params;
@@ -61,7 +70,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
 
       {sp.notice && (
         <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
-          {sp.notice === "guest_limit" ? "The free plan allows 30 guests. Upgrade to Premium to add more." : "Could not import that list."}
+          {noticeText(String(sp.notice))}
         </p>
       )}
       <section aria-label="Plan" className="card flex flex-wrap items-center justify-between gap-3">
@@ -103,6 +112,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
         <section className="card space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-serif text-2xl">Guest list</h2>
+            <form action={sendRsvpReminders.bind(null, id)}><button className="btn-ghost px-3 py-1.5 text-xs">Remind pending ({summary.pending})</button></form>
             <nav aria-label="Filter guests" className="flex gap-1 text-sm">
               {["all", "accepted", "pending", "declined"].map((f) => (
                 <Link key={f} href={f === "all" ? `/dashboard/events/${id}` : `?status=${f}`}

@@ -1,5 +1,9 @@
 "use server";
 
+import { env } from "@/lib/env";
+import { sendEmail } from "@/lib/email/send";
+import { rsvpConfirmationEmail } from "@/lib/email/templates";
+import { getPublicEvent } from "@/lib/public-event";
 import { createClient } from "@/lib/supabase/server";
 import { rsvpInputSchema } from "@/lib/validation";
 
@@ -29,6 +33,14 @@ export async function submitRsvp(slug: string, _prev: RsvpState, formData: FormD
   if (error) {
     const key = Object.keys(ERRORS).find((k) => error.message.includes(k));
     return { ok: false, error: key ? ERRORS[key] : "Something went wrong. Please try again." };
+  }
+  if (v.email) {
+    const event = await getPublicEvent(slug);
+    if (event) {
+      await sendEmail(v.email, rsvpConfirmationEmail({
+        guestName: v.name, eventTitle: event.title, status: v.status, partySize: v.party_size, inviteUrl: `${env.siteUrl}/e/${slug}`,
+      }));
+    }
   }
   return { ok: true, name: v.name, status: v.status };
 }
