@@ -23,7 +23,8 @@ export async function createPrintOrder(eventId: string, _prev: PrintFormState, f
 
   const price = printPriceCents({ quantity: input.quantity, mode: input.mode });
   const { quantity, mode, ...address } = input;
-  const { data: order, error } = await supabase
+  // Ownership of the event was verified above through the RLS client; writes need the service role.
+  const { data: order, error } = await createAdminClient()
     .from("print_orders")
     .insert({ user_id: user.id, event_id: eventId, quantity, mode, address, amount_cents: price.totalCents })
     .select("id")
