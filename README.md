@@ -8,17 +8,24 @@
 
 | Area | Status |
 |---|---|
-| Landing page, 20 multicultural templates (stored as structured data) | Done |
+| Landing page, 20 multicultural templates (structured data) | Done |
 | Passwordless login (email link, Google) | Done |
-| Event editor with live preview, cover photo/GIF/video | Done |
-| Public invitation page + guest RSVP (no account) | Done |
-| Host dashboard: live headcount, meals, guest list, CSV/paste import, share link, QR | Done |
-| Guest photo/video/greeting upload (no account, direct-to-storage) | Done |
-| Host moderation (approve / hide / delete / download) + public album of approved items | Done |
+| Event editor with live preview, cover photo/GIF/video, event time zone | Done |
+| Public invitation + guest RSVP (no account); confirmation email | Done (email needs Resend keys) |
+| Host dashboard: headcount, meals, guest list, CSV/paste import, share link, QR, RSVP reminders | Done |
+| Guest photo/video/greeting upload; host moderation; public album; free zip download | Done |
+| **Billing (Stripe):** free plan (30 guests, 1 event), $36 Premium per event, Memory Keeper $9.99 / Plus $19.99, Planner $49 (monthly or yearly) | Done (needs Stripe keys) |
+| **Album lifecycle:** 30-day (free) / 90-day (premium) albums, expiry emails at 30/7/1 days, grace period, purge; subscribers keep everything | Done (daily cron) |
+| **Collage maker** (grid, mosaic, filmstrip, PNG download) and full-screen **slideshow** | Done |
+| **Printed invitations:** pricing, 21-day lead-time rule, Stripe checkout, order tracking | Done; fulfilment is manual (see below) |
+| **Gift registry:** payment methods with QR/links, cash funds, wishlist with reservations, anonymous giving, gift wall, thank-you tracker | Done |
+| **Seating plan** (capacity rules, auto-seat) and **budget tracker** | Done |
+| **Planner workspace:** all-events overview, team roles (editor/viewer) with invites, business profile, white-label invitation pages | Done |
+| **Creator marketplace:** apply, template studio with contrast check, admin review, per-template purchase, revenue split, Stripe Connect payouts | Done (payouts untested against live Stripe) |
 
-**Not built yet** (see Roadmap): payments and subscriptions (Stripe), storage expiry and reminders,
-collage/slideshow rendering, printed invitations, gift registry, seating/budget, planner workspace,
-creator marketplace. Email sending (RSVP confirmations, reminders) is also not wired up.
+Not built: video highlight reels (needs a render API such as Shotstack), direct mailing of print orders to
+each guest (the order is recorded and we email to collect addresses), automatic print-partner API
+fulfilment, AI captions, multi-currency pricing display, translations.
 
 ## Quick start
 
@@ -58,10 +65,12 @@ Security model
 
 ## Known limitations (deliberate, documented)
 
-- **RSVP identity is by name.** A guest typing another guest's name updates that reply. Acceptable for an
-  invite-link model; per-guest personal links are the planned upgrade.
-- **No per-IP rate limiting.** Anonymous uploads are throttled per event (400 attempts/hour, 2,000 items),
-  and abandoned signed uploads are deleted nightly by `/api/cron/cleanup`. Add an IP limiter (Upstash/Vercel KV) before a public launch.
-- **Event timezone** is captured from the host's browser when the event is first saved.
+- **RSVP identity is by name.** A guest typing another guest's name updates that reply. Per-guest personal links are the planned upgrade.
+- **No per-IP rate limiting.** Anonymous uploads are throttled per event (400 attempts/hour, 2,000 items) and abandoned signed uploads are deleted nightly. Add an IP limiter (Upstash/Vercel KV) before a public launch.
+- **Placeholder business numbers** you must set: print prices (`src/lib/print.ts`), creator revenue share (`CREATOR_SHARE_BPS` in `src/lib/marketplace.ts`, currently 70%), minimum payout, plan prices (`src/lib/billing.ts`).
+- **Print fulfilment is manual.** A paid order emails `PRINT_NOTIFY_EMAIL`; you place the print job with your printer or a print API and update `print_orders.status`/`tracking` in Supabase.
+- **Marketplace "DRM":** templates are colors/fonts/sections stored as data, so a template's look is visible in the public storefront. Purchase is enforced in the app and by a database trigger, but the design itself can't be hidden.
+- **Zip download streams through a Vercel function** (max 300 s). Very large albums may need a background job or direct per-file downloads.
+- Editors on a shared event can't change the cover image (storage folders belong to the owner).
 - HEIC uploads rely on the browser reporting a MIME type; some browsers report none.
 - Old cover images are not deleted when replaced (cleaned up when the event is deleted).
