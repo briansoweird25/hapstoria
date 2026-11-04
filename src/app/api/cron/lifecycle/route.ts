@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { albumStatus, tierFor, type Tier } from "@/lib/billing";
+import { getEntitlements } from "@/lib/album";
+import { albumStatus, type Tier } from "@/lib/billing";
 import { sendEmail } from "@/lib/email/send";
 import { expiryEmail } from "@/lib/email/templates";
 import { env } from "@/lib/env";
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const admin = createAdminClient();
-  const tierCache = new Map<string, Tier | null>();
+  const entitlementCache = new Map<string, { tier: Tier | null; endedAt: string | null }>();
   const result = { checked: 0, emailed: 0, purged: 0 };
 
   for (let from = 0; ; from += 500) {
@@ -34,16 +35,19 @@ export async function GET(request: NextRequest) {
 
     for (const e of events) {
       result.checked++;
-      if (!tierCache.has(e.owner_id)) {
-        const { data: subs } = await admin.from("subscriptions").select("tier,status").eq("user_id", e.owner_id);
-        tierCache.set(e.owner_id, tierFor((subs ?? []) as { tier: Tier; status: string }[]));
-      }
-      const status = albumStatus({ premium: e.premium, premiumAt: e.premium_at, createdAt: e.created_at, tier: tierCache.get(e.owner_id) ?? null });
+      if (!entitlementCache.has(e.owner_id)) entitlementCache.set(e.owner_id, await getEntitlements(admin, e.owner_id));
+      const ent = entitlementCache.get(e.owner_id)!;
+      const status = albumStatus({ premium: e.premium, premiumAt: e.premium_at, createdAt: e.created_at, tier: ent.tier, entitlementEndedAt: ent.endedAt });
 
       if (status.state === "deleted") {
-        await purgeEvent(admin, e.owner_id, e.id);
-        result.purged++;
-        continue;
+        // Never destroy files the host hasn't been warned about: the grace notice must have been sent first.
+        const { data: warned } = await admin.from("notifications").select("id").eq("event_id", e.id).eq("kind", "grace").maybeSingle();
+        if (warned) {
+          await purgeEvent(admin, e.owner_id, e.id);
+          result.purged++;
+          continue;
+        }
+        status.state = "grace"; // still send the notice (below); purge happens on a later run
       }
       const kind = expiryReminderKind(status);
       if (!kind) continue;

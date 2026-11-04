@@ -18,7 +18,7 @@ export default async function GiftsPage({ params, searchParams }: PageProps<"/da
   const { id } = await params;
   const sp = await searchParams;
   const { supabase, user } = await requireUser();
-  const { data: event } = await supabase.from("events").select("id,title,slug,gifts_enabled,gift_allow_anonymous,gift_show_amounts,gift_public_wall").eq("id", id).maybeSingle();
+  const { data: event } = await supabase.from("events").select("id,title,slug,owner_id,gifts_enabled,gift_allow_anonymous,gift_show_amounts,gift_public_wall").eq("id", id).maybeSingle();
   if (!event) notFound();
   const [{ data: methods }, { data: funds }, { data: items }, { data: gifts }] = await Promise.all([
     supabase.from("gift_methods").select("*").eq("event_id", id).order("created_at"),
@@ -66,7 +66,7 @@ export default async function GiftsPage({ params, searchParams }: PageProps<"/da
           <div><label className="label" htmlFor="label">Label</label><input id="label" name="label" className="input" required placeholder="GCash, PayPal, Bank transfer…" /></div>
           <div><label className="label" htmlFor="url">Payment link (https://…)</label><input id="url" name="url" className="input" placeholder="https://paypal.me/yourname" /></div>
           <div><label className="label" htmlFor="details">Account details (optional)</label><input id="details" name="details" className="input" placeholder="Account name, number, bank" /></div>
-          <div className="sm:col-span-2"><QrUpload userId={user.id} /></div>
+          {event.owner_id === user.id && <div className="sm:col-span-2"><QrUpload userId={user.id} /></div>}
           <div className="sm:col-span-2"><button className="btn-soft">Add payment method</button></div>
         </form>
       </section>

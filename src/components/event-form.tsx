@@ -22,7 +22,7 @@ const getBrowserTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "
 
 type Action = (prev: EventFormState, fd: FormData) => Promise<EventFormState>;
 
-export function EventForm({ action, initial, userId, ownedTemplates = [] }: { action: Action; initial: EventFormValues; userId: string; ownedTemplates?: TemplateDef[] }) {
+export function EventForm({ action, initial, userId, ownedTemplates = [], canEditCover = true }: { action: Action; initial: EventFormValues; userId: string; ownedTemplates?: TemplateDef[]; canEditCover?: boolean }) {
   const [state, formAction, pending] = useActionState(action, {});
   const [v, setV] = useState(initial);
   // Existing events keep their stored zone; new ones use the host's browser zone (server renders UTC).
@@ -106,6 +106,7 @@ export function EventForm({ action, initial, userId, ownedTemplates = [] }: { ac
           </div>
         </section>
 
+        {canEditCover && (
         <section className="card space-y-4">
           <h2 className="font-serif text-2xl">Cover</h2>
           <p className="text-sm text-muted">A photo, GIF or short video guests see first (up to 100 MB).</p>
@@ -116,6 +117,7 @@ export function EventForm({ action, initial, userId, ownedTemplates = [] }: { ac
           </div>
           {coverError && <p role="alert" className="text-sm text-red-700">{coverError}</p>}
         </section>
+        )}
 
         <section className="card space-y-4">
           <h2 className="font-serif text-2xl">Style</h2>

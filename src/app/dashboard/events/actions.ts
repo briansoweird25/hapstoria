@@ -11,8 +11,6 @@ import { reminderGuests } from "@/lib/reminders";
 import { getUserTier } from "@/lib/album";
 import { canCreateEvent } from "@/lib/billing";
 import { parseGuestList } from "@/lib/guest-import";
-import { getTemplateDefinition } from "@/lib/marketplace-data";
-import { parseMarketplaceId } from "@/lib/marketplace";
 import { slugify, withSuffix } from "@/lib/slug";
 import { eventInputSchema } from "@/lib/validation";
 import { MEDIA_BUCKET } from "@/lib/media-config";
@@ -40,20 +38,20 @@ export async function saveEvent(
     return { error: "Please fix the highlighted fields.", fieldErrors };
   }
   const input = parsed.data;
-  const cover = coverFields(formData);
-  // Cover must live under the user's own folder (also enforced by storage RLS).
-  if (cover.cover_path && !String(cover.cover_path).startsWith(`${user.id}/`)) return { error: "Invalid cover file." };
-
-  // Marketplace templates are stored as a validated snapshot on the event (DB trigger checks ownership).
-  let theme: object = {};
-  const mktId = parseMarketplaceId(input.template_id);
-  if (mktId) {
-    const def = await getTemplateDefinition(mktId);
-    if (!def) return { error: "That template is no longer available." };
-    theme = def;
+  let cover: Partial<ReturnType<typeof coverFields>> = coverFields(formData);
+  let isOwner = true;
+  if (eventId) {
+    const { data: current } = await supabase.from("events").select("owner_id").eq("id", eventId).maybeSingle();
+    if (!current) return { error: "Event not found." };
+    isOwner = current.owner_id === user.id;
   }
+  // Covers live in the owner's storage folder, so only the owner can change them; editors keep the existing one.
+  if (!isOwner) cover = {};
+  else if (cover.cover_path && !String(cover.cover_path).startsWith(`${user.id}/`)) return { error: "Invalid cover file." };
+
   // starts_at / rsvp_deadline arrive as UTC ISO strings (converted in the browser).
-  const row = { ...input, ...cover, theme };
+  // The marketplace theme snapshot is applied by a database trigger (never client-supplied).
+  const row = { ...input, ...cover };
 
   if (eventId) {
     const { error } = await supabase.from("events").update(row).eq("id", eventId);
@@ -78,6 +76,8 @@ export async function saveEvent(
       .select("id")
       .single();
     if (!error && data) redirect(`/dashboard/events/${data.id}`);
+    if (error?.message.includes("free_event_limit")) return { error: "The free plan includes one invitation. Upgrade it to Premium, or delete it, to create another." };
+    if (error?.message.includes("event_limit")) return { error: "Planner plans include up to 15 events at once." };
     if (error?.code !== "23505") return { error: "Could not create the event. Please try again." };
   }
   return { error: "Could not find a free link for this event. Try a different title." };
@@ -145,6 +145,9 @@ export async function deleteUpload(eventId: string, uploadId: string) {
 
 export async function sendRsvpReminders(eventId: string) {
   const { supabase } = await requireUser();
+  // Viewers can read guests but must not trigger emails.
+  const { data: canWrite } = await supabase.rpc("can_access_event", { eid: eventId, need_write: true });
+  if (!canWrite) redirect(`/dashboard/events/${eventId}?notice=forbidden`);
   const { data: event } = await supabase.from("events").select("title,slug,published").eq("id", eventId).maybeSingle();
   if (!event || !event.published) redirect(`/dashboard/events/${eventId}?notice=reminder_unpublished`);
   const { data: guests } = await supabase.from("guests").select("id,name,email,status,reminded_at").eq("event_id", eventId);
@@ -154,7 +157,8 @@ export async function sendRsvpReminders(eventId: string) {
     const r = await sendEmail(g.email!, rsvpReminderEmail({ guestName: g.name, eventTitle: event.title, inviteUrl: `${env.siteUrl}/e/${event.slug}` }));
     if (r.sent) {
       sent++;
-      await supabase.from("guests").update({ reminded_at: new Date().toISOString() }).eq("id", g.id);
+      const { data: marked } = await supabase.from("guests").update({ reminded_at: new Date().toISOString() }).eq("id", g.id).select("id");
+      if (!marked?.length) break; // can't record the cooldown: stop rather than risk repeat emails
     } else if (r.reason === "email_not_configured") {
       redirect(`/dashboard/events/${eventId}?notice=email_unavailable`);
     }

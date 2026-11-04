@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ALBUM_DAYS, FREE_GUEST_LIMIT, GRACE_DAYS, albumStatus, canCreateEvent, guestLimit,
-  hasActiveSubscription, storageQuotaBytes, tierFor,
+  hasActiveSubscription, latestEntitlementEnd, storageQuotaBytes, tierFor,
 } from "@/lib/billing";
 
 const day = 86_400_000;
@@ -70,5 +70,26 @@ describe("subscriptionAmount", () => {
     expect(subscriptionAmount("keeper", "month")).toBe(999);
     expect(subscriptionAmount("keeper", "year")).toBe(9990);
     expect(subscriptionAmount("planner", "year")).toBe(49000);
+  });
+});
+
+describe("entitlement edge cases (review fixes)", () => {
+  it("past_due and unpaid subscriptions still keep albums (card retry window)", () => {
+    expect(hasActiveSubscription({ status: "past_due", tier: "keeper" })).toBe(true);
+    expect(hasActiveSubscription({ status: "unpaid", tier: "keeper" })).toBe(false);
+  });
+  it("after a subscription ends, the expiry clock starts from the end date, not creation", () => {
+    const endedAt = ago(5);
+    const s = albumStatus({ premium: true, createdAt: ago(400), premiumAt: ago(300), tier: null, now, entitlementEndedAt: endedAt });
+    expect(s.state).toBe("active");
+    expect(s.daysLeft).toBe(ALBUM_DAYS.premium - 5);
+  });
+  it("a long-ended subscription still ends up in grace then deleted", () => {
+    expect(albumStatus({ premium: true, createdAt: ago(400), premiumAt: ago(300), tier: null, now, entitlementEndedAt: ago(95) }).state).toBe("grace");
+    expect(albumStatus({ premium: true, createdAt: ago(400), premiumAt: ago(300), tier: null, now, entitlementEndedAt: ago(120) }).state).toBe("deleted");
+  });
+  it("latestEntitlementEnd picks the newest end among ended subscriptions", () => {
+    expect(latestEntitlementEnd([{ status: "canceled", tier: "keeper", ended_at: ago(30) }, { status: "canceled", tier: "keeper", ended_at: ago(10) }])).toBe(ago(10));
+    expect(latestEntitlementEnd([{ status: "active", tier: "keeper", ended_at: null }])).toBeNull();
   });
 });

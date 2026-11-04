@@ -4,6 +4,8 @@ export type Tier = "keeper" | "keeper_plus" | "planner";
 export interface SubscriptionLike {
   status: string;
   tier: Tier;
+  /** When the subscription stopped entitling the user (set by the webhook on cancellation). */
+  ended_at?: string | null;
 }
 
 export const FREE_GUEST_LIMIT = 30;
@@ -25,7 +27,8 @@ export const PRICES = {
 const TIER_RANK: Record<Tier, number> = { keeper: 1, keeper_plus: 2, planner: 3 };
 
 export function hasActiveSubscription(sub: SubscriptionLike | null | undefined): boolean {
-  return !!sub && (sub.status === "active" || sub.status === "trialing");
+  // past_due = Stripe is still retrying the card; keep access during that window.
+  return !!sub && (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due");
 }
 
 /** The highest tier among active subscriptions, or null. */
@@ -35,6 +38,16 @@ export function tierFor(subs: SubscriptionLike[]): Tier | null {
     if (hasActiveSubscription(s) && (!best || TIER_RANK[s.tier] > TIER_RANK[best])) best = s.tier;
   }
   return best;
+}
+
+/** Newest end date among subscriptions that no longer entitle the user (null if none). */
+export function latestEntitlementEnd(subs: SubscriptionLike[]): string | null {
+  let latest: string | null = null;
+  for (const s of subs) {
+    if (hasActiveSubscription(s) || !s.ended_at) continue;
+    if (!latest || new Date(s.ended_at) > new Date(latest)) latest = s.ended_at;
+  }
+  return latest;
 }
 
 /** True if the tier keeps albums alive after the event pass expires. */
@@ -81,10 +94,13 @@ export function albumStatus(input: {
   premiumAt: string | null;
   tier: Tier | null;
   now?: Date;
+  /** If the owner's subscription ended, the album's expiry clock restarts from this date. */
+  entitlementEndedAt?: string | null;
 }): AlbumStatus {
   if (tierKeepsAlbums(input.tier)) return { state: "kept", expiresAt: null, daysLeft: null };
   const now = input.now ?? new Date();
-  const start = new Date(input.premium && input.premiumAt ? input.premiumAt : input.createdAt);
+  let start = new Date(input.premium && input.premiumAt ? input.premiumAt : input.createdAt);
+  if (input.entitlementEndedAt && new Date(input.entitlementEndedAt) > start) start = new Date(input.entitlementEndedAt);
   const days = input.premium ? ALBUM_DAYS.premium : ALBUM_DAYS.free;
   const expiresAt = new Date(start.getTime() + days * DAY);
   const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / DAY);

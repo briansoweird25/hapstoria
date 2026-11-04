@@ -44,10 +44,13 @@ export async function createPrintOrder(eventId: string, _prev: PrintFormState, f
     cancel_url: `${env.siteUrl}/dashboard/events/${eventId}/print`,
   });
   // `orders` is service-role-write only, so the order row is created by the admin client.
-  await createAdminClient().from("orders").insert({
+  const { error: orderError } = await createAdminClient().from("orders").insert({
     user_id: user.id, kind: "print", event_id: eventId, amount_cents: price.totalCents,
     stripe_session_id: session.id, meta: { print_order_id: order.id },
   });
-  if (!session.url) return { error: "Could not start checkout." };
+  if (orderError || !session.url) {
+    await getStripe().checkout.sessions.expire(session.id).catch(() => undefined);
+    return { error: "Could not start checkout. Please try again." };
+  }
   redirect(session.url);
 }

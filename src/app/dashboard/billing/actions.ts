@@ -40,7 +40,11 @@ export async function buyPremium(eventId: string) {
     user_id: user.id, kind: "event_premium", event_id: eventId,
     amount_cents: PRICES.event_premium.cents, stripe_session_id: session.id,
   });
-  if (error || !session.url) redirect(`/dashboard/events/${eventId}?billing=error`);
+  if (error || !session.url) {
+    // Never send someone to pay for an order we couldn't record (the webhook couldn't match it).
+    await getStripe().checkout.sessions.expire(session.id).catch(() => undefined);
+    redirect(`/dashboard/events/${eventId}?billing=error`);
+  }
   redirect(session.url);
 }
 

@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
 import { rsvpConfirmationEmail } from "@/lib/email/templates";
 import { getPublicEvent } from "@/lib/public-event";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { rsvpInputSchema } from "@/lib/validation";
 
@@ -36,11 +37,30 @@ export async function submitRsvp(slug: string, _prev: RsvpState, formData: FormD
   }
   if (v.email) {
     const event = await getPublicEvent(slug);
-    if (event) {
+    if (event && (await mayEmail(event.id, v.email))) {
       await sendEmail(v.email, rsvpConfirmationEmail({
         guestName: v.name, eventTitle: event.title, status: v.status, partySize: v.party_size, inviteUrl: `${env.siteUrl}/e/${slug}`,
       }));
     }
   }
   return { ok: true, name: v.name, status: v.status };
+}
+
+const MAX_CONFIRMATIONS_PER_EVENT_PER_DAY = 100;
+
+/**
+ * Anyone can submit an RSVP with any address, so confirmations are throttled: at most
+ * one per recipient per event per day and a daily cap per event. The attempt is logged first.
+ */
+async function mayEmail(eventId: string, email: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const recipient = email.trim().toLowerCase();
+  const [{ count: total }, { count: same }] = await Promise.all([
+    admin.from("email_log").select("id", { count: "exact", head: true }).eq("event_id", eventId).gte("created_at", since),
+    admin.from("email_log").select("id", { count: "exact", head: true }).eq("event_id", eventId).eq("recipient", recipient).gte("created_at", since),
+  ]);
+  if ((total ?? 0) >= MAX_CONFIRMATIONS_PER_EVENT_PER_DAY || (same ?? 0) > 0) return false;
+  await admin.from("email_log").insert({ event_id: eventId, recipient });
+  return true;
 }

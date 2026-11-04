@@ -9,11 +9,17 @@ import type { BillingStore } from "./webhook-handler";
 export function createSupabaseBillingStore(): BillingStore {
   const admin = createAdminClient();
   return {
-    async markEventProcessed(id, type) {
-      const { error } = await admin.from("stripe_events").insert({ id, type });
-      if (!error) return true;
-      if (error.code === "23505") return false;
-      throw new Error(`stripe_events insert failed: ${error.message}`);
+    async claimEvent(id, type) {
+      const { data, error } = await admin.rpc("claim_stripe_event", { p_id: id, p_type: type });
+      if (error) throw new Error(`claim_stripe_event failed: ${error.message}`);
+      return data as "claimed" | "done" | "busy";
+    },
+    async completeEvent(id) {
+      const { error } = await admin.from("stripe_events").update({ status: "done", updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    async failEvent(id) {
+      await admin.from("stripe_events").update({ status: "failed", updated_at: new Date().toISOString() }).eq("id", id);
     },
     async markOrderPaid(sessionId) {
       const { data, error } = await admin
@@ -46,7 +52,8 @@ export function createSupabaseBillingStore(): BillingStore {
       if (order.kind !== "print") return;
       const printId = order.meta?.print_order_id as string | undefined;
       if (!printId) return;
-      await admin.from("print_orders").update({ status: "paid", updated_at: new Date().toISOString() }).eq("id", printId).eq("status", "awaiting_payment");
+      const { error: printError } = await admin.from("print_orders").update({ status: "paid", updated_at: new Date().toISOString() }).eq("id", printId).eq("status", "awaiting_payment");
+      if (printError) throw new Error(printError.message); // surface so Stripe retries instead of losing the order
       // Fulfilment is manual for now: notify the operator so they can place the print job.
       const to = process.env.PRINT_NOTIFY_EMAIL;
       if (to) {
@@ -58,9 +65,12 @@ export function createSupabaseBillingStore(): BillingStore {
       }
     },
     async upsertSubscription(row) {
-      const { error } = await admin
-        .from("subscriptions")
-        .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "stripe_subscription_id" });
+      // Done in SQL so stale (out-of-order) events can't overwrite newer state.
+      const { error } = await admin.rpc("upsert_subscription", {
+        p_user_id: row.user_id, p_customer: row.stripe_customer_id, p_subscription: row.stripe_subscription_id,
+        p_tier: row.tier, p_status: row.status, p_period_end: row.current_period_end,
+        p_cancel_at_period_end: row.cancel_at_period_end, p_ended_at: row.ended_at, p_event_created: row.event_created,
+      });
       if (error) throw new Error(error.message);
     },
   };

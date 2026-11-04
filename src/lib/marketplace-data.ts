@@ -46,10 +46,3 @@ export async function getOwnedTemplates(userId: string): Promise<StoreTemplate[]
   }
   return out;
 }
-
-export async function getTemplateDefinition(uuid: string): Promise<TemplateDef | null> {
-  const { createAdminClient } = await import("@/lib/supabase/admin");
-  const { data } = await createAdminClient().from("marketplace_templates").select("definition").eq("id", uuid).maybeSingle();
-  const parsed = templateDefSchema.safeParse({ ...((data?.definition as object) ?? {}), id: marketplaceTemplateId(uuid) });
-  return parsed.success ? parsed.data : null;
-}

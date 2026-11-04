@@ -23,6 +23,7 @@ const STATUS_STYLE = {
 function noticeText(n: string): string {
   if (n === "guest_limit") return "The free plan allows 30 guests. Upgrade to Premium to add more.";
   if (n === "email_unavailable") return "Email sending isn't set up yet, so no reminders were sent.";
+  if (n === "forbidden") return "You only have view access to this event.";
   if (n === "reminder_unpublished") return "Publish the invitation before sending reminders.";
   const m = /^reminded_(\d+)$/.exec(n);
   if (m) return `Reminder sent to ${m[1]} ${m[1] === "1" ? "guest" : "guests"}.`;
@@ -42,7 +43,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
     supabase.from("uploads").select("id", { count: "exact", head: true }).eq("event_id", id).eq("status", "pending"),
   ]);
 
-  const album = await getAlbumStatus(event, supabase);
+  const album = await getAlbumStatus(event);
   const all = guests ?? [];
   const summary = summarizeGuests(all);
   const shown = filter === "all" ? all : all.filter((g) => g.status === filter);

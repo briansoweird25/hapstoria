@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fundSchema, giftMethodSchema, itemSchema, toCents } from "@/lib/gifts";
 
 const back = (id: string, notice?: string) => redirect(`/dashboard/events/${id}/gifts${notice ? `?notice=${notice}` : ""}`);
@@ -22,7 +23,9 @@ export async function addMethod(eventId: string, formData: FormData) {
   const parsed = giftMethodSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return back(eventId, "invalid");
   const qr = String(formData.get("qr_path") ?? "");
-  if (qr && !qr.startsWith(`${user.id}/`)) return back(eventId, "invalid");
+  // QR images live in the owner's storage folder, so only the owner can attach them.
+  const { data: ev } = await supabase.from("events").select("owner_id").eq("id", eventId).maybeSingle();
+  if (qr && (ev?.owner_id !== user.id || !qr.startsWith(`${user.id}/`))) return back(eventId, "invalid");
   const { error } = await supabase.from("gift_methods").insert({ ...parsed.data, event_id: eventId, qr_path: qr || null });
   if (error) return back(eventId, "invalid");
   revalidatePath(`/dashboard/events/${eventId}/gifts`);
@@ -37,7 +40,8 @@ export async function toggleMethod(eventId: string, methodId: string, enabled: b
 export async function deleteMethod(eventId: string, methodId: string) {
   const { supabase } = await requireUser();
   const { data } = await supabase.from("gift_methods").delete().eq("id", methodId).eq("event_id", eventId).select("qr_path").maybeSingle();
-  if (data?.qr_path) await supabase.storage.from("event-media").remove([data.qr_path]);
+  // Row delete was RLS-checked above; the file may sit in the owner's folder, so remove it with the service role.
+  if (data?.qr_path) await createAdminClient().storage.from("event-media").remove([data.qr_path]);
   revalidatePath(`/dashboard/events/${eventId}/gifts`);
 }
 

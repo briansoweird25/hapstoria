@@ -25,7 +25,7 @@ export default async function EditEventPage({ params }: PageProps<"/dashboard/ev
   return (
     <div className="space-y-6">
       <h1 className="font-serif text-4xl">Edit event</h1>
-      <EventForm action={saveEvent.bind(null, id)} initial={initial} userId={user.id} ownedTemplates={owned.map((t) => t.def)} />
+      <EventForm action={saveEvent.bind(null, id)} initial={initial} userId={user.id} ownedTemplates={owned.map((t) => t.def)} canEditCover={e.owner_id === user.id} />
     </div>
   );
 }

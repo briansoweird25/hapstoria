@@ -30,10 +30,13 @@ export async function buyTemplate(formData: FormData) {
     success_url: `${env.siteUrl}/marketplace?purchased=1`,
     cancel_url: `${env.siteUrl}/marketplace`,
   });
-  await admin.from("orders").insert({
+  const { error: orderError } = await admin.from("orders").insert({
     user_id: user.id, kind: "template", amount_cents: tpl.price_cents, stripe_session_id: session.id,
     meta: { template_id: tpl.id, price_cents: tpl.price_cents },
   });
-  if (!session.url) redirect("/marketplace?error=checkout");
+  if (orderError || !session.url) {
+    await getStripe().checkout.sessions.expire(session.id).catch(() => undefined);
+    redirect("/marketplace?error=checkout");
+  }
   redirect(session.url);
 }

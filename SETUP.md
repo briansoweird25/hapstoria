@@ -6,7 +6,7 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
 
 1. Create a new project (choose a region near your guests). Save the database password.
 2. **Database:** open *SQL Editor → New query* and run each file in `supabase/migrations/` **in order**
-   (`0001_init.sql`, `0002_billing.sql`, … `0008_marketplace.sql`), one at a time. Each should say "Success".
+   (`0001_init.sql`, `0002_billing.sql`, … `0009_review_fixes.sql`), one at a time. Each should say "Success".
 3. **Storage:** *Storage* should now list a private bucket named `event-media`.
 4. **Keys:** *Project Settings → API*. Copy the Project URL, the `anon` public key, and the `service_role` key.
    The `service_role` key is secret: it goes only into Vercel's environment settings.
