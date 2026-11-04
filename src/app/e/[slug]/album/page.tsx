@@ -6,7 +6,7 @@ import { signPaths } from "@/lib/media";
 import { getAlbumStatus } from "@/lib/album";
 import { albumAcceptsUploads } from "@/lib/billing";
 import { getPublicEvent } from "@/lib/public-event";
-import { getTemplate } from "@/lib/templates";
+import { resolveTemplate } from "@/lib/templates";
 
 export const metadata: Metadata = { title: "Album", robots: { index: false } };
 
@@ -15,7 +15,7 @@ export default async function AlbumPage({ params }: PageProps<"/e/[slug]/album">
   const { slug } = await params;
   const e = await getPublicEvent(slug);
   if (!e) notFound();
-  const t = getTemplate(e.template_id);
+  const t = resolveTemplate(e.template_id, e.theme);
   const admin = createAdminClient();
   const { data: row } = await admin.from("events").select("owner_id,premium,premium_at,created_at").eq("id", e.id).single();
   if (!row || !albumAcceptsUploads((await getAlbumStatus(row, admin)).state)) {

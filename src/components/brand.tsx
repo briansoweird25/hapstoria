@@ -17,6 +17,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
       <Logo />
       <nav className="flex items-center gap-2 text-sm">
         <Link href="/templates" className="hidden px-3 py-2 text-muted hover:text-ink sm:block">Templates</Link>
+        <Link href="/marketplace" className="hidden px-3 py-2 text-muted hover:text-ink sm:block">Marketplace</Link>
         {signedIn ? (
           <Link href="/dashboard" className="btn-primary">My events</Link>
         ) : (

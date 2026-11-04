@@ -1,9 +1,11 @@
-import { FONT_STACKS, getTemplate } from "@/lib/templates";
+import { FONT_STACKS, resolveTemplate } from "@/lib/templates";
 import { formatEventDate } from "@/lib/format";
 
 export interface InvitationData {
   title: string;
   template_id: string;
+  /** Snapshot of a marketplace template definition (ignored for built-in templates). */
+  theme?: unknown;
   host_names?: string;
   starts_at?: string | null;
   timezone?: string | null;
@@ -17,7 +19,7 @@ export interface InvitationData {
 
 /** Pure presentational invitation, shared by the editor preview, template gallery and public page. */
 export function InvitationCard({ data, compact = false }: { data: InvitationData; compact?: boolean }) {
-  const t = getTemplate(data.template_id);
+  const t = resolveTemplate(data.template_id, data.theme);
   const heading = { fontFamily: FONT_STACKS[t.font] };
   const when = formatEventDate(data.starts_at, data.timezone);
   return (

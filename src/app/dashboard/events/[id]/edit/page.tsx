@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EventForm, type EventFormValues } from "@/components/event-form";
 import { requireUser } from "@/lib/auth";
 import { signPaths } from "@/lib/media";
+import { getOwnedTemplates } from "@/lib/marketplace-data";
 import { saveEvent } from "../../actions";
 
 export const metadata: Metadata = { title: "Edit event" };
@@ -12,6 +13,7 @@ export default async function EditEventPage({ params }: PageProps<"/dashboard/ev
   const { supabase, user } = await requireUser();
   const { data: e } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!e) notFound();
+  const owned = await getOwnedTemplates(user.id);
   const signed = e.cover_path ? await signPaths([e.cover_path]) : {};
   const initial: EventFormValues = {
     title: e.title, kind: e.kind, template_id: e.template_id, host_names: e.host_names,
@@ -23,7 +25,7 @@ export default async function EditEventPage({ params }: PageProps<"/dashboard/ev
   return (
     <div className="space-y-6">
       <h1 className="font-serif text-4xl">Edit event</h1>
-      <EventForm action={saveEvent.bind(null, id)} initial={initial} userId={user.id} />
+      <EventForm action={saveEvent.bind(null, id)} initial={initial} userId={user.id} ownedTemplates={owned.map((t) => t.def)} />
     </div>
   );
 }

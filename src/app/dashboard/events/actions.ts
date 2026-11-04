@@ -11,6 +11,8 @@ import { reminderGuests } from "@/lib/reminders";
 import { getUserTier } from "@/lib/album";
 import { canCreateEvent } from "@/lib/billing";
 import { parseGuestList } from "@/lib/guest-import";
+import { getTemplateDefinition } from "@/lib/marketplace-data";
+import { parseMarketplaceId } from "@/lib/marketplace";
 import { slugify, withSuffix } from "@/lib/slug";
 import { eventInputSchema } from "@/lib/validation";
 import { MEDIA_BUCKET } from "@/lib/media-config";
@@ -42,12 +44,20 @@ export async function saveEvent(
   // Cover must live under the user's own folder (also enforced by storage RLS).
   if (cover.cover_path && !String(cover.cover_path).startsWith(`${user.id}/`)) return { error: "Invalid cover file." };
 
+  // Marketplace templates are stored as a validated snapshot on the event (DB trigger checks ownership).
+  let theme: object = {};
+  const mktId = parseMarketplaceId(input.template_id);
+  if (mktId) {
+    const def = await getTemplateDefinition(mktId);
+    if (!def) return { error: "That template is no longer available." };
+    theme = def;
+  }
   // starts_at / rsvp_deadline arrive as UTC ISO strings (converted in the browser).
-  const row = { ...input, ...cover };
+  const row = { ...input, ...cover, theme };
 
   if (eventId) {
     const { error } = await supabase.from("events").update(row).eq("id", eventId);
-    if (error) return { error: "Could not save changes. Please try again." };
+    if (error) return { error: error.message.includes("template_not_owned") ? "You don't own that template." : "Could not save changes. Please try again." };
     revalidatePath(`/dashboard/events/${eventId}`);
     redirect(`/dashboard/events/${eventId}`);
   }

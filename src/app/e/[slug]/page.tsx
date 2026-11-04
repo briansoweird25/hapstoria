@@ -6,7 +6,7 @@ import { RsvpForm } from "@/components/rsvp-form";
 import { getPublicEvent } from "@/lib/public-event";
 import { getPublicGifts } from "@/lib/public-gifts";
 import { createClient } from "@/lib/supabase/server";
-import { getTemplate } from "@/lib/templates";
+import { resolveTemplate } from "@/lib/templates";
 
 async function getBranding(slug: string) {
   const supabase = await createClient();
@@ -25,7 +25,7 @@ export default async function InvitationPage({ params }: PageProps<"/e/[slug]">)
   const [e, gifts] = await Promise.all([getPublicEvent(slug), getPublicGifts(slug)]);
   const branding = e ? await getBranding(slug) : null;
   if (!e) notFound();
-  const t = getTemplate(e.template_id);
+  const t = resolveTemplate(e.template_id, e.theme);
   const closed = e.rsvp_deadline ? new Date(e.rsvp_deadline) < new Date() : false;
   return (
     <main className="min-h-screen px-4 py-8" style={{ background: t.palette.bg, color: t.palette.text }}>

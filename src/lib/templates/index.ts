@@ -1,3 +1,5 @@
+import { templateDefSchema } from "./schema";
+
 export interface Palette {
   bg: string;
   surface: string;
@@ -96,3 +98,16 @@ export const FONT_STACKS: Record<TemplateDef["font"], string> = {
   sans: "var(--font-sans), system-ui, sans-serif",
   display: "var(--font-display), 'Trebuchet MS', sans-serif",
 };
+
+/**
+ * Resolves the template to render. Built-in ids always use the built-in definition.
+ * Marketplace ids ("mkt:<uuid>") use the validated snapshot stored on the event; anything invalid falls back safely.
+ */
+export function resolveTemplate(id: string, snapshot?: unknown): TemplateDef {
+  if (id.startsWith("mkt:")) {
+    const parsed = templateDefSchema.safeParse(snapshot);
+    if (parsed.success) return parsed.data;
+    return TEMPLATES[0];
+  }
+  return getTemplate(id);
+}

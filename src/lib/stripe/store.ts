@@ -1,4 +1,5 @@
 import "server-only";
+import { splitRevenue } from "@/lib/marketplace";
 import { sendEmail } from "@/lib/email/send";
 import { escapeHtml } from "@/lib/email/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,6 +30,19 @@ export function createSupabaseBillingStore(): BillingStore {
       if (error) throw new Error(error.message);
     },
     async onOrderPaid(order) {
+      if (order.kind === "template") {
+        const templateId = order.meta?.template_id as string | undefined;
+        const priceCents = Number(order.meta?.price_cents);
+        if (!templateId || !Number.isInteger(priceCents)) return;
+        const { creatorCents, platformCents } = splitRevenue(priceCents);
+        // unique (template_id, buyer_id) makes webhook replays harmless
+        const { error } = await admin.from("template_purchases").upsert(
+          { template_id: templateId, buyer_id: order.user_id, price_cents: priceCents, creator_share_cents: creatorCents, platform_fee_cents: platformCents },
+          { onConflict: "template_id,buyer_id", ignoreDuplicates: true },
+        );
+        if (error) throw new Error(error.message);
+        return;
+      }
       if (order.kind !== "print") return;
       const printId = order.meta?.print_order_id as string | undefined;
       if (!printId) return;

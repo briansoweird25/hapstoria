@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UploadForm } from "@/components/upload-form";
 import { getPublicEvent } from "@/lib/public-event";
-import { getTemplate } from "@/lib/templates";
+import { resolveTemplate } from "@/lib/templates";
 
 export const metadata: Metadata = { title: "Share your memories", robots: { index: false } };
 
@@ -11,7 +11,7 @@ export default async function UploadPage({ params }: PageProps<"/e/[slug]/upload
   const { slug } = await params;
   const e = await getPublicEvent(slug);
   if (!e || !e.uploads_enabled) notFound();
-  const t = getTemplate(e.template_id);
+  const t = resolveTemplate(e.template_id, e.theme);
   return (
     <main className="min-h-screen px-4 py-8" style={{ background: t.palette.bg, color: t.palette.text }}>
       <div className="mx-auto max-w-md space-y-6">

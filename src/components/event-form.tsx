@@ -3,7 +3,7 @@
 import { useActionState, useRef, useState, useSyncExternalStore } from "react";
 import { InvitationCard } from "@/components/invitation-card";
 import { createClient } from "@/lib/supabase/browser";
-import { EVENT_KINDS, TEMPLATES } from "@/lib/templates";
+import { EVENT_KINDS, TEMPLATES, type TemplateDef } from "@/lib/templates";
 import { toZonedLocal, zonedLocalToIso } from "@/lib/format";
 import { MEDIA_BUCKET } from "@/lib/media-config";
 import { extensionFor, validateUpload } from "@/lib/upload-rules";
@@ -22,7 +22,7 @@ const getBrowserTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "
 
 type Action = (prev: EventFormState, fd: FormData) => Promise<EventFormState>;
 
-export function EventForm({ action, initial, userId }: { action: Action; initial: EventFormValues; userId: string }) {
+export function EventForm({ action, initial, userId, ownedTemplates = [] }: { action: Action; initial: EventFormValues; userId: string; ownedTemplates?: TemplateDef[] }) {
   const [state, formAction, pending] = useActionState(action, {});
   const [v, setV] = useState(initial);
   // Existing events keep their stored zone; new ones use the host's browser zone (server renders UTC).
@@ -134,6 +134,20 @@ export function EventForm({ action, initial, userId }: { action: Action; initial
               </button>
             ))}
           </div>
+          {ownedTemplates.length > 0 && (
+            <>
+              <p className="label">Your marketplace templates</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {ownedTemplates.map((t) => (
+                  <button key={t.id} type="button" onClick={() => setV((p) => ({ ...p, template_id: t.id, kind: t.kind }))} aria-pressed={v.template_id === t.id}
+                    className={`rounded-xl border-2 p-3 text-left ${v.template_id === t.id ? "border-champagne" : "border-line"}`} style={{ background: t.palette.bg, color: t.palette.text }}>
+                    <span className="mb-2 block h-1.5 w-8 rounded-full" style={{ background: t.palette.accent }} />
+                    <span className="text-sm font-medium">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         <section className="card space-y-4">
@@ -167,7 +181,7 @@ export function EventForm({ action, initial, userId }: { action: Action; initial
 
       <aside className="lg:sticky lg:top-6 lg:self-start">
         <p className="label">Live preview</p>
-        <InvitationCard data={{ ...v, starts_at: startsIso, timezone: tz, coverUrl: cover.url, cover_kind: (cover.kind || null) as EventFormValues["cover_kind"] }} />
+        <InvitationCard data={{ ...v, theme: ownedTemplates.find((t) => t.id === v.template_id), starts_at: startsIso, timezone: tz, coverUrl: cover.url, cover_kind: (cover.kind || null) as EventFormValues["cover_kind"] }} />
       </aside>
     </form>
   );
