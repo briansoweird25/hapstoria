@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { InvitationCard } from "@/components/invitation-card";
 import { RsvpForm } from "@/components/rsvp-form";
 import { getPublicEvent } from "@/lib/public-event";
+import { getPublicGifts } from "@/lib/public-gifts";
 import { getTemplate } from "@/lib/templates";
 
 export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Promise<Metadata> {
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Prom
 
 export default async function InvitationPage({ params }: PageProps<"/e/[slug]">) {
   const { slug } = await params;
-  const e = await getPublicEvent(slug);
+  const [e, gifts] = await Promise.all([getPublicEvent(slug), getPublicGifts(slug)]);
   if (!e) notFound();
   const t = getTemplate(e.template_id);
   const closed = e.rsvp_deadline ? new Date(e.rsvp_deadline) < new Date() : false;
@@ -26,6 +27,7 @@ export default async function InvitationPage({ params }: PageProps<"/e/[slug]">)
           <h2 className="mb-4 text-center text-2xl font-semibold">RSVP</h2>
           <RsvpForm slug={slug} mealOptions={e.meal_options} maxPlusOnes={e.max_plus_ones} closed={closed} />
         </section>
+        {gifts && <Link href={`/e/${slug}/gifts`} className="btn-ghost w-full">Gift registry</Link>}
         {e.uploads_enabled && (
           <div className="flex flex-col gap-2 text-center">
             <Link href={`/e/${slug}/upload`} className="btn-ghost">Share photos, videos &amp; greetings</Link>
