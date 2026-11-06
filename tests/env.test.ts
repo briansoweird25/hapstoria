@@ -23,3 +23,20 @@ describe("env.siteUrl", () => {
     expect(env.siteUrl).toBe("http://localhost:3000");
   });
 });
+
+import { supabaseConfigured } from "@/lib/env";
+
+describe("supabaseConfigured", () => {
+  it("is true only for a real http(s) URL and a non-empty anon key", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://abcd.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "eyJabc");
+    expect(supabaseConfigured()).toBe(true);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "Project URL");
+    expect(supabaseConfigured()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "ftp://x.co");
+    expect(supabaseConfigured()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://abcd.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    expect(supabaseConfigured()).toBe(false);
+  });
+});

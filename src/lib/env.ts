@@ -21,3 +21,16 @@ export const env = {
     return url.replace(/\/$/, "");
   },
 };
+
+/** True when the public Supabase settings look usable (a real http(s) URL and a key). Never throws. */
+export function supabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" || u.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
