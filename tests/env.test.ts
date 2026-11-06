@@ -40,3 +40,16 @@ describe("supabaseConfigured", () => {
     expect(supabaseConfigured()).toBe(false);
   });
 });
+
+import { googleAuthEnabled } from "@/lib/env";
+
+describe("googleAuthEnabled", () => {
+  it("is off unless explicitly set to true", () => {
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_AUTH_ENABLED", "");
+    expect(googleAuthEnabled()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_AUTH_ENABLED", "yes");
+    expect(googleAuthEnabled()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_AUTH_ENABLED", "true");
+    expect(googleAuthEnabled()).toBe(true);
+  });
+});

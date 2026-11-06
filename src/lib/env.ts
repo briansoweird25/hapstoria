@@ -34,3 +34,8 @@ export function supabaseConfigured(): boolean {
     return false;
   }
 }
+
+/** Google sign-in is hidden until the provider is set up in Supabase and this is set to "true". */
+export function googleAuthEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+}

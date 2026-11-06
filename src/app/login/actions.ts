@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { env } from "@/lib/env";
+import { env, googleAuthEnabled } from "@/lib/env";
 
 export type LoginState = { ok: boolean; message: string };
 
@@ -29,6 +29,7 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
 }
 
 export async function signInWithGoogle(formData: FormData) {
+  if (!googleAuthEnabled()) redirect("/login"); // hidden in the UI; also refuse direct calls
   const next = safeNext(formData.get("next"));
   const supabase = await createClient();
   const h = await headers();

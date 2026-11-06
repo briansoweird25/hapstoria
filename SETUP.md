@@ -13,8 +13,9 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
 5. **Auth URLs:** *Authentication → URL Configuration*. Set *Site URL* to your Netlify URL
    (for example `https://your-site.netlify.app`) and add `https://YOUR-DOMAIN/auth/callback` and
    `http://localhost:3000/auth/callback` under *Redirect URLs*.
-6. *(Optional)* Google sign-in: *Authentication → Providers → Google*, following Supabase's on-screen steps.
-   Email sign-in links work without it.
+6. *(Optional)* Google sign-in: enable *Authentication → Providers → Google* (you need a Google Cloud OAuth client whose
+   redirect URI is `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`), then set `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`
+   in Netlify and redeploy. The button stays hidden until you do. Email sign-in links work without it.
 
 ## 2. Netlify
 

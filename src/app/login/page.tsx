@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Logo } from "@/components/brand";
+import { googleAuthEnabled } from "@/lib/env";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Log in" };
@@ -19,7 +20,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <p className="mt-1 text-sm text-muted">Log in or create your account. No password needed.</p>
           </div>
           {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">Sign-in didn&apos;t complete. Please try again.</p>}
-          <LoginForm next={next} />
+          <LoginForm next={next} showGoogle={googleAuthEnabled()} />
         </div>
         <p className="text-center text-xs text-muted">Guests never need an account to RSVP or upload.</p>
       </div>

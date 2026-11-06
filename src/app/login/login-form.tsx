@@ -5,7 +5,7 @@ import { sendMagicLink, signInWithGoogle, type LoginState } from "./actions";
 
 const initial: LoginState = { ok: false, message: "" };
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, showGoogle }: { next: string; showGoogle: boolean }) {
   const [state, action, pending] = useActionState(sendMagicLink, initial);
   return (
     <div className="space-y-4">
@@ -22,11 +22,15 @@ export function LoginForm({ next }: { next: string }) {
           <p role="status" className={`text-sm ${state.ok ? "text-emerald-700" : "text-red-700"}`}>{state.message}</p>
         )}
       </form>
-      <div className="flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
-      <form action={signInWithGoogle}>
-        <input type="hidden" name="next" value={next} />
-        <button className="btn-ghost w-full">Continue with Google</button>
-      </form>
+      {showGoogle && (
+        <>
+          <div className="flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+          <form action={signInWithGoogle}>
+            <input type="hidden" name="next" value={next} />
+            <button className="btn-ghost w-full">Continue with Google</button>
+          </form>
+        </>
+      )}
     </div>
   );
 }
