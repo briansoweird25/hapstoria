@@ -14,9 +14,10 @@ export const env = {
     return required("SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY);
   },
   get siteUrl() {
-    const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+    // Explicit setting first; then the host platform's own URL (Netlify: URL, Vercel: VERCEL_PROJECT_PRODUCTION_URL).
     const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-    const url = explicit ?? (vercel ? `https://${vercel}` : "http://localhost:3000");
+    const url =
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || (vercel ? `https://${vercel}` : "") || "http://localhost:3000";
     return url.replace(/\/$/, "");
   },
 };

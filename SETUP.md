@@ -1,6 +1,6 @@
-# Setup: Supabase + Vercel
+# Setup: Supabase + Netlify
 
-About 30–45 minutes, no coding. You need free accounts on [GitHub](https://github.com), [Supabase](https://supabase.com) and [Vercel](https://vercel.com).
+About 30–45 minutes, no coding. You need free accounts on [GitHub](https://github.com), [Supabase](https://supabase.com) and [Netlify](https://netlify.com).
 
 ## 1. Supabase
 
@@ -9,27 +9,31 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
    (`0001_init.sql`, `0002_billing.sql`, … `0009_review_fixes.sql`), one at a time. Each should say "Success".
 3. **Storage:** *Storage* should now list a private bucket named `event-media`.
 4. **Keys:** *Project Settings → API*. Copy the Project URL, the `anon` public key, and the `service_role` key.
-   The `service_role` key is secret: it goes only into Vercel's environment settings.
-5. **Auth URLs:** *Authentication → URL Configuration*. Set *Site URL* to your Vercel URL
-   (for example `https://hapstoria.vercel.app`) and add `https://YOUR-DOMAIN/auth/callback` and
+   The `service_role` key is secret: it goes only into Netlify's environment variables.
+5. **Auth URLs:** *Authentication → URL Configuration*. Set *Site URL* to your Netlify URL
+   (for example `https://your-site.netlify.app`) and add `https://YOUR-DOMAIN/auth/callback` and
    `http://localhost:3000/auth/callback` under *Redirect URLs*.
 6. *(Optional)* Google sign-in: *Authentication → Providers → Google*, following Supabase's on-screen steps.
    Email sign-in links work without it.
 
-## 2. Vercel
+## 2. Netlify
 
-1. Push this repository to GitHub, then in Vercel choose *Add New → Project* and import it.
-2. Add these Environment Variables (Production and Preview):
+1. Push this repository to GitHub, then in Netlify choose *Add new site → Import an existing project* and pick it.
+   Netlify detects Next.js automatically; `netlify.toml` sets the build command and Node 22.
+2. Under *Site configuration → Environment variables* add (all scopes):
 
    | Name | Value |
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key |
-   | `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
-   | `NEXT_PUBLIC_SITE_URL` | your Vercel/production URL, no trailing slash |
-   | `CRON_SECRET` | any long random string (protects the nightly cleanup job) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | service_role key (mark as secret) |
+   | `NEXT_PUBLIC_SITE_URL` | your production URL, no trailing slash (needed at build time; Netlify's `URL` is only a fallback) |
+   | `CRON_SECRET` | any long random string (protects the scheduled jobs) |
 
-3. Deploy. Then update Supabase's Site URL (step 1.5) if the URL changed.
+3. Deploy. Then set Supabase's Site URL (step 1.5) to the Netlify URL or your custom domain.
+4. **Scheduled jobs:** `netlify/functions/cron-*.mts` run daily and monthly *on the published production deploy only*
+   and call the `/api/cron/*` routes with `CRON_SECRET`. Check *Logs → Functions* after the first day.
+   Netlify limits how long functions may run, so very large albums may need the jobs split up; see README.
 
 ## 3. Stripe (payments)
 
@@ -50,11 +54,11 @@ Create a Resend account, verify your sending domain, then set `RESEND_API_KEY` a
 
 | Name | Purpose |
 |---|---|
-| `CRON_SECRET` | Protects the nightly/monthly jobs defined in `vercel.json` |
+| `CRON_SECRET` | Protects the nightly/monthly jobs in `netlify/functions/` |
 | `ADMIN_EMAILS` | Comma-separated emails allowed to open `/admin` (creator/template review) |
 | `PRINT_NOTIFY_EMAIL` | Where paid print orders are announced |
 
-Vercel Cron runs three jobs automatically: orphan-upload cleanup (daily), album lifecycle emails and purges (daily),
+Three scheduled jobs run automatically: orphan-upload cleanup (daily), album lifecycle emails and purges (daily),
 creator payouts (monthly).
 
 ## 6. Test like a customer

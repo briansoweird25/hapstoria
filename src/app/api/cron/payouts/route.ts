@@ -39,7 +39,7 @@ async function sendTransfer(admin: Admin, payoutId: string, amountCents: number,
 /**
  * Monthly job: transfers each creator's unpaid earnings (once above the minimum) to their connected
  * Stripe account. Earnings are claimed atomically by a payout row, only the rows actually claimed are paid,
- * and pending payouts from earlier ambiguous attempts are retried first. Protected by CRON_SECRET.
+ * and pending payouts from earlier ambiguous attempts are retried first. Protected by CRON_SECRET (sent by netlify/functions/cron-payouts.mts).
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;

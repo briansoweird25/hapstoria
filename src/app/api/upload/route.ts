@@ -10,7 +10,7 @@ const fail = (error: string, status = 400) => NextResponse.json({ error }, { sta
 
 /**
  * Anonymous guest uploads. Files go straight to Supabase Storage via a signed
- * upload URL (Vercel functions can't accept large bodies); rows are created
+ * upload URL (serverless functions can't accept large bodies); rows are created
  * only after the file is verified to exist, and always start as "pending".
  */
 export async function POST(request: Request) {

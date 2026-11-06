@@ -13,7 +13,7 @@ export const maxDuration = 300;
 /**
  * Daily job: (1) email hosts before/after album expiry, once per threshold;
  * (2) purge files and rows of albums past expiry + grace (subscribers are never purged).
- * Protected by CRON_SECRET (Vercel Cron sends `Authorization: Bearer <secret>`).
+ * Protected by CRON_SECRET (the Netlify scheduled function sends `Authorization: Bearer <secret>`).
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;

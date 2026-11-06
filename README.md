@@ -2,7 +2,7 @@
 
 *Every celebration has a story.* Digital invitations, RSVPs, and a shared guest album.
 
-**Stack:** Next.js 16 (App Router) · Supabase (Postgres, Auth, Storage) · Vercel
+**Stack:** Next.js 16 (App Router) · Supabase (Postgres, Auth, Storage) · Netlify
 
 ## What works today
 
@@ -66,11 +66,17 @@ Security model
 ## Known limitations (deliberate, documented)
 
 - **RSVP identity is by name.** A guest typing another guest's name updates that reply. Per-guest personal links are the planned upgrade.
-- **No per-IP rate limiting.** Anonymous uploads are throttled per event (400 attempts/hour, 2,000 items) and abandoned signed uploads are deleted nightly. Add an IP limiter (Upstash/Vercel KV) before a public launch.
+- **No per-IP rate limiting.** Anonymous uploads are throttled per event (400 attempts/hour, 2,000 items) and abandoned signed uploads are deleted nightly. Add an IP limiter (for example Upstash Redis) before a public launch.
 - **Placeholder business numbers** you must set: print prices (`src/lib/print.ts`), creator revenue share (`CREATOR_SHARE_BPS` in `src/lib/marketplace.ts`, currently 70%), minimum payout, plan prices (`src/lib/billing.ts`).
 - **Print fulfilment is manual.** A paid order emails `PRINT_NOTIFY_EMAIL`; you place the print job with your printer or a print API and update `print_orders.status`/`tracking` in Supabase.
 - **Marketplace "DRM":** templates are colors/fonts/sections stored as data, so a template's look is visible in the public storefront. Purchase is enforced in the app and by a database trigger, but the design itself can't be hidden.
-- **Zip download streams through a Vercel function** (max 300 s). Very large albums may need a background job or direct per-file downloads.
+- **Netlify function time limits.** The zip download, the lifecycle job and the payouts job run as ordinary Next.js
+  route handlers, so they are bound by Netlify's function timeout for your plan. Very large albums may need the zip
+  built in a background job (Netlify background functions) or direct per-file downloads, and the lifecycle job may need
+  batching if you have thousands of events.
+- **Netlify deployment is untested.** I could not reach Netlify's docs or deploy from this environment. Confirm that the
+  `proxy.ts` auth redirect (Next.js 16's replacement for middleware) works on your Netlify site by opening `/dashboard`
+  while signed out: it must redirect to `/login`. If it doesn't, check the Netlify Next.js runtime version supports Next.js 16.
 - Editors on a shared event can't change the cover image (storage folders belong to the owner).
 - HEIC uploads rely on the browser reporting a MIME type; some browsers report none.
 - Old cover images are not deleted when replaced (cleaned up when the event is deleted).

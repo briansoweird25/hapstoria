@@ -4,9 +4,9 @@ import { MEDIA_BUCKET } from "@/lib/media-config";
 import { ORPHAN_AGE_MS } from "@/lib/upload-api";
 
 /**
- * Daily job (see vercel.json). Deletes files that were signed for upload but
+ * Daily job (scheduled by netlify/functions/cron-cleanup.mts). Deletes files that were signed for upload but
  * never completed, then prunes old attempt rows. Protected by CRON_SECRET,
- * which Vercel sends as `Authorization: Bearer <secret>`.
+ * which the scheduled function sends as `Authorization: Bearer <secret>`.
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
