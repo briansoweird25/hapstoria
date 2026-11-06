@@ -18,7 +18,7 @@ export const env = {
     const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL;
     const url =
       process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || (vercel ? `https://${vercel}` : "") || "http://localhost:3000";
-    return url.replace(/\/$/, "");
+    return normalizeSiteUrl(url);
   },
 };
 
@@ -38,4 +38,18 @@ export function supabaseConfigured(): boolean {
 /** Google sign-in is hidden until the provider is set up in Supabase and this is set to "true". */
 export function googleAuthEnabled(): boolean {
   return process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true";
+}
+
+/**
+ * Auth emails embed this address, and Supabase rejects anything that isn't a full URL ("requested path is invalid").
+ * So accept sloppy input: add a missing scheme, keep only the origin (no path or trailing slash).
+ */
+function normalizeSiteUrl(raw: string): string {
+  const value = raw.trim();
+  const withScheme = /^https?:\/\//i.test(value) ? value : `${/^(localhost|127\.0\.0\.1)(:|$)/i.test(value) ? "http" : "https"}://${value}`;
+  try {
+    return new URL(withScheme).origin;
+  } catch {
+    return "http://localhost:3000";
+  }
 }

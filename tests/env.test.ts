@@ -53,3 +53,23 @@ describe("googleAuthEnabled", () => {
     expect(googleAuthEnabled()).toBe(true);
   });
 });
+
+describe("env.siteUrl normalization", () => {
+  it("adds https:// when the scheme is missing", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "hapstoria.netlify.app");
+    expect(env.siteUrl).toBe("https://hapstoria.netlify.app");
+  });
+  it("uses http for localhost without a scheme", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "localhost:3000");
+    expect(env.siteUrl).toBe("http://localhost:3000");
+  });
+  it("keeps only the origin: drops paths, trailing slashes and whitespace", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "  https://hapstoria.netlify.app/dashboard/  ");
+    expect(env.siteUrl).toBe("https://hapstoria.netlify.app");
+  });
+  it("falls back to localhost for unparseable values", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "not a url at all");
+    vi.stubEnv("URL", "");
+    expect(env.siteUrl).toBe("http://localhost:3000");
+  });
+});
