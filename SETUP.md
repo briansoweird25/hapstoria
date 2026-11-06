@@ -20,15 +20,15 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
 
 1. Push this repository to GitHub, then in Netlify choose *Add new site → Import an existing project* and pick it.
    Netlify detects Next.js automatically; `netlify.toml` sets the build command and Node 22.
-2. Under *Site configuration → Environment variables* add (all scopes):
+2. Under *Site configuration → Environment variables* add (all scopes). **The right-hand column says where to find each value; paste the actual value itself, never that wording.**
 
    | Name | Value |
    |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key |
-   | `SUPABASE_SERVICE_ROLE_KEY` | service_role key (mark as secret) |
+   | `NEXT_PUBLIC_SUPABASE_URL` | from Supabase → Project Settings → API |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | from the same page ("anon public") |
+   | `SUPABASE_SERVICE_ROLE_KEY` | from the same page ("service role"), a long string starting with `eyJ` |
    | `NEXT_PUBLIC_SITE_URL` | your production URL, no trailing slash (needed at build time; Netlify's `URL` is only a fallback) |
-   | `CRON_SECRET` | any long random string (protects the scheduled jobs) |
+   | `CRON_SECRET` | generate one, e.g. run `openssl rand -hex 32` and paste the result |
 
 3. Deploy. Then set Supabase's Site URL (step 1.5) to the Netlify URL or your custom domain.
 4. **Scheduled jobs:** `netlify/functions/cron-*.mts` run daily and monthly *on the published production deploy only*
