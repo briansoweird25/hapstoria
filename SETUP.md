@@ -17,6 +17,19 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
    redirect URI is `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`), then set `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`
    in Netlify and redeploy. The button stays hidden until you do. Email sign-in links work without it.
 
+### Sign-in emails (important)
+
+Supabase's built-in email sender is only for trying things out: it sends a handful of emails per hour and, on
+current projects, **only to addresses that belong to your Supabase organization's team**. Anyone else gets an error
+and no email. Before real users sign in, connect your own sender under *Authentication → SMTP Settings*:
+
+- With Resend (create an API key and verify your domain first): host `smtp.resend.com`, port `465`,
+  username `resend`, password = your Resend API key, sender = an address on your verified domain.
+- Then check *Authentication → Emails* for the "Magic Link" template and send yourself a test.
+
+If the login page shows an error, its text now says what's wrong (rate limit, sender not set up, sign-ups off).
+The same details are in Supabase under *Logs → Auth*.
+
 ## 2. Netlify
 
 1. Push this repository to GitHub, then in Netlify choose *Add new site → Import an existing project* and pick it.

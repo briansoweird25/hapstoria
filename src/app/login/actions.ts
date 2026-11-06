@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { env, googleAuthEnabled } from "@/lib/env";
+import { loginErrorMessage } from "@/lib/login-errors";
 
 export type LoginState = { ok: boolean; message: string };
 
@@ -24,7 +25,10 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
     email: parsed.data,
     options: { emailRedirectTo: `${env.siteUrl}/auth/callback?next=${encodeURIComponent(next)}` },
   });
-  if (error) return { ok: false, message: "We couldn't send the link. Please try again shortly." };
+  if (error) {
+    console.error("magic link failed", { code: error.code, status: error.status, message: error.message });
+    return { ok: false, message: loginErrorMessage(error) };
+  }
   return { ok: true, message: `Check ${parsed.data} for your sign-in link.` };
 }
 
