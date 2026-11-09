@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasAuthCookie } from "@/lib/auth-claims";
 import { supabaseConfigured } from "@/lib/env";
+import { needsRefresh, sessionExpiry } from "@/lib/session-cookie";
 
 /** Refreshes the auth session and gates /dashboard routes. */
 export async function updateSession(request: NextRequest) {
@@ -17,6 +18,11 @@ export async function updateSession(request: NextRequest) {
     // Misconfigured: public pages still load; protected pages send you to login rather than crashing.
     return protectedPath ? redirectToLogin(request) : response;
   }
+
+  // A token with more than a minute left needs no refresh, so don't spend a network round trip on every request.
+  // Pages and routes still verify the login themselves (requireUser / getClaims), and the database enforces access
+  // with row-level security, so skipping the check here only saves time; it grants nothing.
+  if (!needsRefresh(sessionExpiry(request.cookies.getAll()))) return response;
 
   try {
     const supabase = createServerClient(url, key, {

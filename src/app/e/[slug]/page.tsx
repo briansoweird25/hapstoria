@@ -22,8 +22,8 @@ export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Prom
 
 export default async function InvitationPage({ params }: PageProps<"/e/[slug]">) {
   const { slug } = await params;
-  const [e, gifts] = await Promise.all([getPublicEvent(slug), getPublicGifts(slug)]);
-  const branding = e ? await getBranding(slug) : null;
+  // All three lookups are independent, so they run together (each is a network round trip to Supabase).
+  const [e, gifts, branding] = await Promise.all([getPublicEvent(slug), getPublicGifts(slug), getBranding(slug)]);
   if (!e) notFound();
   const t = resolveTemplate(e.template_id, e.theme);
   const closed = e.rsvp_deadline ? new Date(e.rsvp_deadline) < new Date() : false;

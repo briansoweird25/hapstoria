@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/browser";
 import { EVENT_KINDS, TEMPLATES, type TemplateDef } from "@/lib/templates";
 import { toZonedLocal, zonedLocalToIso } from "@/lib/format";
 import { MEDIA_BUCKET } from "@/lib/media-config";
+import { compressImage } from "@/lib/image-resize";
 import { extensionFor, validateUpload } from "@/lib/upload-rules";
 import type { EventFormState } from "@/app/dashboard/events/actions";
 
@@ -52,13 +53,14 @@ export function EventForm({ action, initial, userId, ownedTemplates = [], canEdi
     const check = validateUpload(file);
     if (!check.ok) return setCoverError(check.error);
     setUploading(true);
-    const path = `${userId}/covers/${crypto.randomUUID()}.${extensionFor(file.type)}`;
+    const toUpload = await compressImage(file); // large photos are shrunk so the invitation opens fast on phones
+    const path = `${userId}/covers/${crypto.randomUUID()}.${extensionFor(toUpload.type)}`;
     const supabase = createClient();
-    const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type });
+    const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, toUpload, { contentType: toUpload.type });
     setUploading(false);
     if (error) return setCoverError("Upload failed. Please try again.");
-    const kind = check.kind === "video" ? "video" : file.type === "image/gif" ? "gif" : "image";
-    setCover({ path, kind, url: URL.createObjectURL(file) });
+    const kind = check.kind === "video" ? "video" : toUpload.type === "image/gif" ? "gif" : "image";
+    setCover({ path, kind, url: URL.createObjectURL(toUpload) });
   }
 
   return (

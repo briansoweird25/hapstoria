@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import { MEDIA_BUCKET } from "@/lib/media-config";
+import { compressImage } from "@/lib/image-resize";
 import { validateUpload } from "@/lib/upload-rules";
 
 type Item = { name: string; state: "uploading" | "done" | "error"; message?: string };
@@ -35,8 +36,10 @@ export function UploadForm({ slug }: { slug: string }) {
       try {
         const check = validateUpload(file);
         if (!check.ok) throw new Error(check.error);
-        const { path, token } = await api({ action: "sign", slug, type: file.type, size: file.size });
-        const { error } = await supabase.storage.from(MEDIA_BUCKET).uploadToSignedUrl(path, token, file, { contentType: file.type });
+        // Big phone photos are shrunk first: faster upload now, and a much faster album for everyone later.
+        const upload = await compressImage(file);
+        const { path, token } = await api({ action: "sign", slug, type: upload.type, size: upload.size });
+        const { error } = await supabase.storage.from(MEDIA_BUCKET).uploadToSignedUrl(path, token, upload, { contentType: upload.type });
         if (error) throw new Error("Upload failed. Please try again.");
         await api({ action: "complete", slug, path, name: guestName });
         update(i, { state: "done" });
