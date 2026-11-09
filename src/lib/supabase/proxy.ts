@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasAuthCookie } from "@/lib/auth-claims";
 import { supabaseConfigured } from "@/lib/env";
 
 /** Refreshes the auth session and gates /dashboard routes. */
@@ -7,7 +8,11 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const protectedPath = request.nextUrl.pathname.startsWith("/dashboard");
+  const protectedPath = request.nextUrl.pathname.startsWith("/dashboard") || request.nextUrl.pathname.startsWith("/admin");
+  // Visitors without a session (most guests) need no Supabase work at all.
+  if (!hasAuthCookie(request.cookies.getAll().map((c) => c.name))) {
+    return protectedPath ? redirectToLogin(request) : response;
+  }
   if (!supabaseConfigured() || !url || !key) {
     // Misconfigured: public pages still load; protected pages send you to login rather than crashing.
     return protectedPath ? redirectToLogin(request) : response;

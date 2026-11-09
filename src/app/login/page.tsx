@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Logo } from "@/components/brand";
+import { redirect } from "next/navigation";
+import { getOptionalUser } from "@/lib/auth";
 import { googleAuthEnabled } from "@/lib/env";
 import { LoginForm } from "./login-form";
 
@@ -10,6 +12,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const rawNext = typeof sp.next === "string" ? sp.next : "/dashboard";
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
   const error = sp.error;
+  // Already signed in: no need to send another email link.
+  if (await getOptionalUser()) redirect(next);
   return (
     <main className="grid flex-1 place-items-center px-5 py-12">
       <div className="w-full max-w-sm space-y-6">

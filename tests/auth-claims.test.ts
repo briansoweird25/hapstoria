@@ -18,3 +18,17 @@ describe("userFromClaims", () => {
     expect(userFromClaims({ sub: "abc", role: "authenticated" })).toEqual({ id: "abc", email: undefined });
   });
 });
+
+import { hasAuthCookie } from "@/lib/auth-claims";
+
+describe("hasAuthCookie", () => {
+  it("detects Supabase session cookies, including chunked ones", () => {
+    expect(hasAuthCookie(["theme", "sb-abcd-auth-token"])).toBe(true);
+    expect(hasAuthCookie(["sb-abcd-auth-token.0", "sb-abcd-auth-token.1"])).toBe(true);
+    expect(hasAuthCookie(["sb-abcd-auth-token-code-verifier"])).toBe(false);
+  });
+  it("is false without one", () => {
+    expect(hasAuthCookie([])).toBe(false);
+    expect(hasAuthCookie(["_ga", "session"])).toBe(false);
+  });
+});
