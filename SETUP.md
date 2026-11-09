@@ -96,3 +96,11 @@ npm run dev
 
 Large videos: Supabase's free plan limits individual files to 50 MB. The app allows 100 MB, so either
 upgrade the project or lower `MAX_VIDEO_BYTES` in `src/lib/upload-rules.ts` (and the bucket limit in the migration).
+
+## Speed
+
+Most of the time a page takes is network round trips between Netlify's servers and Supabase, so where they are matters.
+
+- **Put them in the same part of the world.** Your Supabase project region is fixed when you create it (see *Project Settings → General*). In Netlify, *Site configuration → Functions → Function region* chooses where the server code runs, if your plan offers it. Pick the region closest to your Supabase project and to most of your users. A server in the US talking to a database in Asia adds a quarter of a second or more to every database call.
+- **Asymmetric JWT signing keys.** In Supabase, *Project Settings → JWT Keys*: if your project still uses the legacy shared secret, migrating to signing keys lets the app verify logins locally instead of asking Supabase on every page.
+- The first request after a quiet period is slower (a "cold start"); later requests are faster.

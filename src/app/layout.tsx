@@ -5,8 +5,9 @@ import "./globals.css";
 const sans = Inter({ variable: "--font-sans", subsets: ["latin"] });
 const serif = Cormorant_Garamond({ variable: "--font-serif", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 const brand = Cinzel({ variable: "--font-brand", subsets: ["latin"], weight: ["500", "600"] });
-const script = Great_Vibes({ variable: "--font-script", subsets: ["latin"], weight: "400" });
-const display = Fredoka({ variable: "--font-display", subsets: ["latin"] });
+// Script/display faces are only used on some invitation templates: load them on demand, not on every page.
+const script = Great_Vibes({ variable: "--font-script", subsets: ["latin"], weight: "400", preload: false });
+const display = Fredoka({ variable: "--font-display", subsets: ["latin"], preload: false });
 
 export const metadata: Metadata = {
   title: { default: "Hapstoria — Every celebration has a story", template: "%s · Hapstoria" },

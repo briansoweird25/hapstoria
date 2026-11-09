@@ -38,17 +38,18 @@ export default async function EventDashboard({ params, searchParams }: PageProps
 
   const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!event) notFound();
-  const [{ data: guests }, { count: pendingUploads }] = await Promise.all([
+  const inviteUrl = `${env.siteUrl}/e/${event.slug}`;
+  // Independent lookups run together instead of one after another (each is a network round trip).
+  const [{ data: guests }, { count: pendingUploads }, album, qr] = await Promise.all([
     supabase.from("guests").select("*").eq("event_id", id).order("name"),
     supabase.from("uploads").select("id", { count: "exact", head: true }).eq("event_id", id).eq("status", "pending"),
+    getAlbumStatus(event),
+    QRCode.toDataURL(`${inviteUrl}/upload`, { margin: 1, width: 240 }),
   ]);
 
-  const album = await getAlbumStatus(event);
   const all = guests ?? [];
   const summary = summarizeGuests(all);
   const shown = filter === "all" ? all : all.filter((g) => g.status === filter);
-  const inviteUrl = `${env.siteUrl}/e/${event.slug}`;
-  const qr = await QRCode.toDataURL(`${inviteUrl}/upload`, { margin: 1, width: 240 });
   const meals = Object.entries(summary.meals);
 
   return (

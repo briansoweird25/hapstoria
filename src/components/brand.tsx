@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthNav } from "@/components/auth-nav";
 
 export function Logo({ href = "/" }: { href?: string }) {
   return (
@@ -11,21 +12,18 @@ export function Logo({ href = "/" }: { href?: string }) {
   );
 }
 
-export function SiteHeader({ signedIn }: { signedIn: boolean }) {
+/**
+ * `signedIn` is optional: pages that already know it pass it; static public pages omit it and the browser
+ * decides from the Supabase auth cookie, so those pages need no server round trip to render.
+ */
+export function SiteHeader({ signedIn }: { signedIn?: boolean }) {
   return (
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5">
       <Logo />
       <nav className="flex items-center gap-2 text-sm">
         <Link href="/templates" className="hidden px-3 py-2 text-muted hover:text-ink sm:block">Templates</Link>
         <Link href="/marketplace" className="hidden px-3 py-2 text-muted hover:text-ink sm:block">Marketplace</Link>
-        {signedIn ? (
-          <Link href="/dashboard" className="btn-primary">My events</Link>
-        ) : (
-          <>
-            <Link href="/login" className="px-3 py-2 text-muted hover:text-ink">Log in</Link>
-            <Link href="/login?next=/dashboard/events/new" className="btn-primary">Create invitation</Link>
-          </>
-        )}
+        <AuthNav signedIn={signedIn} />
       </nav>
     </header>
   );

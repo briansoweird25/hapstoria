@@ -15,8 +15,8 @@ type Upload = { kind: string; uploader_name: string; greeting_text: string | nul
 export async function GET(_req: Request, ctx: RouteContext<"/api/events/[id]/download">) {
   const { id } = await ctx.params;
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth?.claims) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: event } = await supabase.from("events").select("id,slug").eq("id", id).maybeSingle();
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });

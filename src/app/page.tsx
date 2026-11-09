@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/brand";
 import { InvitationCard } from "@/components/invitation-card";
-import { getOptionalUser } from "@/lib/auth";
 
 const STEPS = [
   ["Create", "Pick a template, add the details, a cover photo or video, and your RSVP options."],
@@ -11,11 +10,10 @@ const STEPS = [
   ["Keep", "Approve what goes public, then relive it all in one place."],
 ];
 
-export default async function Home() {
-  const user = await getOptionalUser();
+export default function Home() {
   return (
     <>
-      <SiteHeader signedIn={Boolean(user)} />
+      <SiteHeader />
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-12 md:grid-cols-2 md:py-20">
           <div>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/brand";
 import { InvitationCard } from "@/components/invitation-card";
-import { getOptionalUser } from "@/lib/auth";
 import { EVENT_KINDS, TEMPLATES } from "@/lib/templates";
 
 export const metadata: Metadata = { title: "Templates" };
@@ -10,11 +9,10 @@ export const metadata: Metadata = { title: "Templates" };
 export default async function TemplatesPage({ searchParams }: PageProps<"/templates">) {
   const sp = await searchParams;
   const kind = typeof sp.kind === "string" ? sp.kind : "all";
-  const user = await getOptionalUser();
   const list = kind === "all" ? TEMPLATES : TEMPLATES.filter((t) => t.kind === kind);
   return (
     <>
-      <SiteHeader signedIn={Boolean(user)} />
+      <SiteHeader />
       <main className="mx-auto w-full max-w-6xl px-5 py-8">
         <h1 className="font-serif text-4xl">Templates</h1>
         <nav aria-label="Filter by event type" className="mt-5 flex flex-wrap gap-2">
