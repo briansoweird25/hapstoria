@@ -78,7 +78,7 @@ export default async function GiftsPage({ params, searchParams }: PageProps<"/da
           return (
             <div key={f.id} className="space-y-1">
               <div className="flex justify-between text-sm"><span>{f.title}</span>
-                <span>{formatMoney(raised(f.id), "USD")}{f.goal_cents ? ` of ${formatMoney(f.goal_cents, "USD")}` : ""}
+                <span>{formatMoney(raised(f.id), "PHP")}{f.goal_cents ? ` of ${formatMoney(f.goal_cents, "PHP")}` : ""}
                   <form action={deleteFund.bind(null, id, f.id)} className="ml-2 inline"><button className="text-xs text-red-700 underline">Delete</button></form></span></div>
               {pct !== null && <div className="h-2 rounded-full bg-champagne-soft" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="h-2 rounded-full bg-champagne" style={{ width: `${pct}%` }} /></div>}
             </div>

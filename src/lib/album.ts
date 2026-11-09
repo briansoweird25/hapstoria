@@ -5,12 +5,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Highest active subscription tier for a user (works with RLS client for self, or admin for anyone). */
 export async function getUserTier(client: SupabaseClient, userId: string): Promise<Tier | null> {
-  const { data } = await client.from("subscriptions").select("tier,status").eq("user_id", userId);
-  return tierFor((data ?? []) as { tier: Tier; status: string }[]);
+  const { data } = await client.from("subscriptions").select("tier,status,valid_until").eq("user_id", userId);
+  return tierFor((data ?? []) as SubscriptionLike[]);
 }
 
 export async function getEntitlements(client: SupabaseClient, userId: string): Promise<{ tier: Tier | null; endedAt: string | null }> {
-  const { data } = await client.from("subscriptions").select("tier,status,ended_at").eq("user_id", userId);
+  const { data } = await client.from("subscriptions").select("tier,status,ended_at,valid_until").eq("user_id", userId);
   const subs = (data ?? []) as SubscriptionLike[];
   return { tier: tierFor(subs), endedAt: latestEntitlementEnd(subs) };
 }

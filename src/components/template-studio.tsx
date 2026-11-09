@@ -20,7 +20,7 @@ export function TemplateStudio() {
     <form action={action} className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="grid gap-3 sm:grid-cols-2">
         <div><label className="label" htmlFor="name">Template name</label><input id="name" name="name" required className="input" value={v.name} onChange={(e) => set("name", e.target.value)} /></div>
-        <div><label className="label" htmlFor="price">Price (USD, $3–$99)</label><input id="price" name="price" required inputMode="decimal" className="input" placeholder="12" /></div>
+        <div><label className="label" htmlFor="price">Price (₱150–₱5,000)</label><input id="price" name="price" required inputMode="decimal" className="input" placeholder="250" /></div>
         <div><label className="label" htmlFor="kind">Event type</label>
           <select id="kind" name="kind" className="input" value={v.kind} onChange={(e) => set("kind", e.target.value)}>{EVENT_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}</select></div>
         <div><label className="label" htmlFor="culture">Culture / tradition</label><input id="culture" name="culture" className="input" placeholder="e.g. Filipino, Mexican, Indian" /></div>

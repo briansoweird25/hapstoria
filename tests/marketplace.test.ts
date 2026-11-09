@@ -7,12 +7,12 @@ import { getTemplate, resolveTemplate, TEMPLATES } from "@/lib/templates";
 
 describe("splitRevenue", () => {
   it("splits with integer cents that always sum to the price", () => {
-    for (const price of [300, 999, 1234, 4999, 9900]) {
+    for (const price of [15000, 24999, 123456, 499900, 500000]) {
       const s = splitRevenue(price);
       expect(s.creatorCents + s.platformCents).toBe(price);
       expect(Number.isInteger(s.creatorCents)).toBe(true);
     }
-    expect(splitRevenue(1000).creatorCents).toBe(Math.floor((1000 * CREATOR_SHARE_BPS) / 10000));
+    expect(splitRevenue(25000).creatorCents).toBe(Math.floor((25000 * CREATOR_SHARE_BPS) / 10000));
   });
   it("rejects out-of-range prices", () => {
     expect(() => splitRevenue(MIN_PRICE_CENTS - 1)).toThrow();
@@ -22,9 +22,9 @@ describe("splitRevenue", () => {
 
 describe("pendingPayoutCents", () => {
   it("sums only unpaid earnings and reports whether the threshold is reached", () => {
-    const rows = [{ creator_share_cents: 1500, payout_id: null }, { creator_share_cents: 900, payout_id: null }, { creator_share_cents: 5000, payout_id: "p1" }];
-    expect(pendingPayoutCents(rows)).toEqual({ cents: 2400, payable: 2400 >= MIN_PAYOUT_CENTS });
-    expect(pendingPayoutCents([{ creator_share_cents: 500, payout_id: null }]).payable).toBe(false);
+    const rows = [{ creator_share_cents: 30000, payout_id: null }, { creator_share_cents: 25000, payout_id: null }, { creator_share_cents: 500000, payout_id: "p1" }];
+    expect(pendingPayoutCents(rows)).toEqual({ cents: 55000, payable: 55000 >= MIN_PAYOUT_CENTS });
+    expect(pendingPayoutCents([{ creator_share_cents: 5000, payout_id: null }]).payable).toBe(false);
   });
 });
 
@@ -38,18 +38,18 @@ describe("isAdminEmail", () => {
 });
 
 describe("templateSubmissionSchema", () => {
-  const ok = { name: "Mehndi Night", kind: "cultural", culture: "South Asian", description: "Henna-inspired.", price: "12.00", font: "display",
+  const ok = { name: "Mehndi Night", kind: "cultural", culture: "South Asian", description: "Henna-inspired.", price: "250.00", font: "display",
     bg: "#fff6e5", surface: "#fffcf4", text: "#3a1f2c", accent: "#d9467a", accentSoft: "#ffe0a3" };
   it("accepts a valid submission and converts price to cents", () => {
     const r = templateSubmissionSchema.parse(ok);
-    expect(r.price_cents).toBe(1200);
+    expect(r.price_cents).toBe(25000);
   });
   it("rejects bad colors, kinds, fonts and prices", () => {
     expect(templateSubmissionSchema.safeParse({ ...ok, accent: "pink" }).success).toBe(false);
     expect(templateSubmissionSchema.safeParse({ ...ok, kind: "nope" }).success).toBe(false);
     expect(templateSubmissionSchema.safeParse({ ...ok, font: "comic" }).success).toBe(false);
-    expect(templateSubmissionSchema.safeParse({ ...ok, price: "1" }).success).toBe(false);
-    expect(templateSubmissionSchema.safeParse({ ...ok, price: "500" }).success).toBe(false);
+    expect(templateSubmissionSchema.safeParse({ ...ok, price: "10" }).success).toBe(false);
+    expect(templateSubmissionSchema.safeParse({ ...ok, price: "6000" }).success).toBe(false);
   });
   it("rejects low-contrast text/background combinations", () => {
     expect(templateSubmissionSchema.safeParse({ ...ok, text: "#fdfcf3" }).success).toBe(false);

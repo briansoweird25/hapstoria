@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getEntitlements } from "@/lib/album";
-import { albumStatus, type Tier } from "@/lib/billing";
+import { albumStatus, membershipReminderKind, PRICES, type Tier } from "@/lib/billing";
 import { sendEmail } from "@/lib/email/send";
-import { expiryEmail } from "@/lib/email/templates";
+import { expiryEmail, membershipEmail } from "@/lib/email/templates";
 import { env } from "@/lib/env";
 import { MEDIA_BUCKET } from "@/lib/media-config";
 import { expiryReminderKind } from "@/lib/reminders";
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
   const admin = createAdminClient();
   const entitlementCache = new Map<string, { tier: Tier | null; endedAt: string | null }>();
-  const result = { checked: 0, emailed: 0, purged: 0 };
+  const result = { checked: 0, emailed: 0, purged: 0, membershipReminders: 0 };
 
   for (let from = 0; ; from += 500) {
     const { data: events } = await admin
@@ -64,7 +64,42 @@ export async function GET(request: NextRequest) {
     }
     if (events.length < 500) break;
   }
+  result.membershipReminders = await sendMembershipReminders(admin);
   return NextResponse.json(result);
+}
+
+/** Prepaid memberships ending within a week: one email at 7 days and one at 1 day, each sent once per end date. */
+async function sendMembershipReminders(admin: ReturnType<typeof createAdminClient>): Promise<number> {
+  const horizon = new Date(Date.now() + 7 * 86_400_000).toISOString();
+  const { data: ending } = await admin
+    .from("subscriptions")
+    .select("user_id,tier,valid_until")
+    .eq("status", "active")
+    .not("valid_until", "is", null)
+    .gt("valid_until", new Date().toISOString())
+    .lte("valid_until", horizon);
+  let sent = 0;
+  for (const m of ending ?? []) {
+    const kind = membershipReminderKind(m.valid_until as string);
+    if (!kind) continue;
+    // Claim first (unique per user, plan, end date and kind) so retries never double-send.
+    const { error: claimed } = await admin.from("membership_notices").insert({ user_id: m.user_id, tier: m.tier, valid_until: m.valid_until, kind });
+    if (claimed) continue;
+    const { data: owner } = await admin.auth.admin.getUserById(m.user_id);
+    if (!owner.user?.email) continue;
+    const result = await sendEmail(
+      owner.user.email,
+      membershipEmail({
+        planLabel: PRICES[m.tier as Tier].label,
+        kind,
+        endsOn: new Date(m.valid_until as string).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }),
+        renewUrl: `${env.siteUrl}/dashboard/billing`,
+      }),
+    );
+    if (result.sent) sent++;
+    else await admin.from("membership_notices").delete().eq("user_id", m.user_id).eq("tier", m.tier).eq("valid_until", m.valid_until).eq("kind", kind); // retry tomorrow
+  }
+  return sent;
 }
 
 async function purgeEvent(admin: ReturnType<typeof createAdminClient>, ownerId: string, eventId: string) {

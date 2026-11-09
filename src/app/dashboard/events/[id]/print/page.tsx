@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PrintForm } from "@/components/print-form";
 import { requireUser } from "@/lib/auth";
 import { formatEventDate } from "@/lib/format";
+import { availableProviders } from "@/lib/payments/checkout";
 import { canOrderPrint, PRINT_LEAD_DAYS } from "@/lib/print";
 
 export const metadata: Metadata = { title: "Printed invitations" };
@@ -32,7 +33,7 @@ export default async function PrintPage({ params, searchParams }: PageProps<"/da
       {timing.ok ? (
         <>
           <p className="text-sm">Order by <strong>{formatEventDate(timing.orderBy.toISOString(), event.timezone).split(" · ")[0]}</strong> to arrive in time.</p>
-          <PrintForm eventId={id} />
+          <PrintForm eventId={id} providers={availableProviders()} />
         </>
       ) : (
         <p role="alert" className="rounded-xl bg-lavender-soft p-4 text-sm">{timing.reason}</p>

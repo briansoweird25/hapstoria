@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/brand";
 import { InvitationCard } from "@/components/invitation-card";
+import { PayButtons } from "@/components/pay-buttons";
 import { getOptionalUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/gifts";
 import { listMarketplace } from "@/lib/marketplace-data";
+import { availableProviders } from "@/lib/payments/checkout";
 import { createClient } from "@/lib/supabase/server";
 import { buyTemplate } from "./actions";
 
@@ -17,6 +19,7 @@ const MESSAGES: Record<string, string> = {
 export default async function MarketplacePage({ searchParams }: PageProps<"/marketplace">) {
   const sp = await searchParams;
   const [user, templates] = await Promise.all([getOptionalUser(), listMarketplace()]);
+  const providers = availableProviders();
   const supabase = await createClient();
   const ownedIds = new Set<string>();
   if (user) {
@@ -39,7 +42,11 @@ export default async function MarketplacePage({ searchParams }: PageProps<"/mark
                 <div className="flex items-center justify-between gap-3">
                   <div><p className="font-medium">{t.name}</p><p className="text-xs text-muted">{t.culture || t.kind} · by {t.creator_name}</p></div>
                   {ownedIds.has(t.id) ? <span className="text-sm text-emerald-700">Owned ✓</span> : (
-                    <form action={buyTemplate}><input type="hidden" name="template_id" value={t.id} /><button className="btn-soft">Buy · {formatMoney(t.price_cents, "USD")}</button></form>
+                    <form action={buyTemplate} className="space-y-1">
+                      <input type="hidden" name="template_id" value={t.id} />
+                      <p className="text-xs text-muted">{formatMoney(t.price_cents, "PHP")}</p>
+                      <PayButtons providers={providers} compact />
+                    </form>
                   )}
                 </div>
               </li>

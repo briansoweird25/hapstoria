@@ -9,6 +9,10 @@ import { getAlbumStatus } from "@/lib/album";
 import { env } from "@/lib/env";
 import { formatEventDate } from "@/lib/format";
 import { summarizeGuests } from "@/lib/stats";
+import { PayButtons } from "@/components/pay-buttons";
+import { PRICES } from "@/lib/billing";
+import { formatPeso } from "@/lib/money";
+import { availableProviders } from "@/lib/payments/checkout";
 import { buyPremium } from "../../billing/actions";
 import { deleteEvent, importGuests, removeGuest, sendRsvpReminders, setPublished } from "../actions";
 
@@ -38,6 +42,7 @@ export default async function EventDashboard({ params, searchParams }: PageProps
 
   const { data: event } = await supabase.from("events").select("*").eq("id", id).maybeSingle();
   if (!event) notFound();
+  const providers = availableProviders();
   const inviteUrl = `${env.siteUrl}/e/${event.slug}`;
   // Independent lookups run together instead of one after another (each is a network round trip).
   const [{ data: guests }, { count: pendingUploads }, album, qr] = await Promise.all([
@@ -94,7 +99,10 @@ export default async function EventDashboard({ params, searchParams }: PageProps
         </div>
         <div className="flex gap-2">
           {!event.premium && event.owner_id === user.id && (
-            <form action={buyPremium.bind(null, id)}><button className="btn-primary">Upgrade to Premium · $36</button></form>
+            <form action={buyPremium.bind(null, id)} className="space-y-1">
+              <p className="text-xs text-muted">Premium · {formatPeso(PRICES.event_premium.cents)}</p>
+              <PayButtons providers={providers} compact />
+            </form>
           )}
           {album.state !== "kept" && <Link href="/dashboard/billing" className="btn-ghost">Memory Keeper</Link>}
         </div>

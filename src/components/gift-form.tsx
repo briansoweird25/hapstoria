@@ -50,7 +50,7 @@ export function GiftForm({ slug, gifts }: { slug: string; gifts: PublicGifts }) 
               return (
                 <label key={f.id} className="block rounded-xl border border-black/10 p-3 text-sm">
                   <input type="radio" name="target_id" value={f.id} defaultChecked={i === 0} className="mr-2" />{f.title}
-                  {pct !== null && <span className="ml-2 opacity-60">{pct}% of {formatMoney(f.goal_cents!, "USD")}</span>}
+                  {pct !== null && <span className="ml-2 opacity-60">{pct}% of {formatMoney(f.goal_cents!, "PHP")}</span>}
                 </label>
               );
             })}
@@ -70,7 +70,7 @@ export function GiftForm({ slug, gifts }: { slug: string; gifts: PublicGifts }) 
         {target !== "item" && (
           <div className="grid grid-cols-[1fr_6rem] gap-2">
             <div><label className="label" htmlFor="amount">Amount sent</label><input id="amount" name="amount" inputMode="decimal" required className="input" placeholder="50" /></div>
-            <div><label className="label" htmlFor="currency">Currency</label><input id="currency" name="currency" defaultValue="USD" maxLength={3} className="input uppercase" /></div>
+            <div><label className="label" htmlFor="currency">Currency</label><input id="currency" name="currency" defaultValue="PHP" maxLength={3} className="input uppercase" /></div>
           </div>
         )}
         {gifts.allow_anonymous && (

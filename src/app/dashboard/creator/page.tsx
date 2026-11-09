@@ -3,16 +3,15 @@ import { TemplateStudio } from "@/components/template-studio";
 import { requireUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/gifts";
 import { CREATOR_SHARE_BPS, MIN_PAYOUT_CENTS, pendingPayoutCents } from "@/lib/marketplace";
-import { applyCreator, startConnectOnboarding } from "./actions";
+import { applyCreator, savePayoutDetails } from "./actions";
 
 export const metadata: Metadata = { title: "Creator studio" };
 
 const NOTICES: Record<string, string> = {
   applied: "Application received. We'll review it shortly.", invalid: "Please check your details.", failed: "Could not save.",
-  payments_unavailable: "Payments aren't enabled yet.", not_approved: "Your profile must be approved first.",
-  connected: "Thanks! Stripe will confirm your payout details shortly.", connect_retry: "Onboarding wasn't finished. You can restart it below.",
+  invalid_payout: "Choose GCash or PayPal and enter where to send your earnings.", payout_saved: "Payout details saved.",
 };
-const usd = (c: number) => formatMoney(c, "USD");
+const usd = (c: number) => formatMoney(c, "PHP");
 
 export default async function CreatorPage({ searchParams }: PageProps<"/dashboard/creator">) {
   const sp = await searchParams;
@@ -58,11 +57,15 @@ export default async function CreatorPage({ searchParams }: PageProps<"/dashboar
           <section className="card space-y-2">
             <h2 className="font-serif text-2xl">Earnings</h2>
             <p className="text-sm">Sales: {sales?.length ?? 0} · Unpaid balance: <strong>{usd(pending.cents)}</strong> {pending.payable ? "(paid out next cycle)" : `(paid out once you reach ${usd(MIN_PAYOUT_CENTS)})`}</p>
-            {profile?.stripe_account_id
-              ? <p className="text-xs text-muted">Payout account connected.</p>
-              : <p className="text-xs text-muted">Connect a payout account to receive earnings.</p>}
-            <form action={startConnectOnboarding}><button className="btn-ghost">{profile?.stripe_account_id ? "Update payout details" : "Set up payouts"}</button></form>
-            {!!payouts?.length && <ul className="mt-2 text-xs text-muted">{payouts.map((p) => <li key={p.id}>{new Date(p.created_at).toLocaleDateString("en-US")}: {usd(p.amount_cents)} ({p.status})</li>)}</ul>}
+            <p className="text-xs text-muted">Earnings are sent by hand to your GCash number or PayPal email.</p>
+            <form action={savePayoutDetails} className="flex flex-wrap gap-2">
+              <select name="payout_method" defaultValue={profile?.payout_method ?? "gcash"} className="input w-32" aria-label="Payout method">
+                <option value="gcash">GCash</option><option value="paypal">PayPal</option>
+              </select>
+              <input name="payout_details" required defaultValue={profile?.payout_details ?? ""} className="input flex-1" placeholder="GCash number or PayPal email" aria-label="Payout details" />
+              <button className="btn-soft">Save</button>
+            </form>
+            {!!payouts?.length && <ul className="mt-2 text-xs text-muted">{payouts.map((p) => <li key={p.id}>{new Date(p.created_at).toLocaleDateString("en-PH")}: {usd(p.amount_cents)} ({p.status})</li>)}</ul>}
           </section>
         </>
       )}

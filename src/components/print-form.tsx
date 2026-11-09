@@ -2,11 +2,14 @@
 
 import { useActionState, useState } from "react";
 import { createPrintOrder, type PrintFormState } from "@/app/dashboard/events/[id]/print/actions";
+import { PayButtons } from "@/components/pay-buttons";
+import { formatPeso } from "@/lib/money";
+import type { Provider } from "@/lib/payments/checkout";
 import { MIN_QUANTITY, printPriceCents, type PrintMode } from "@/lib/print";
 
-const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
+const usd = formatPeso;
 
-export function PrintForm({ eventId }: { eventId: string }) {
+export function PrintForm({ eventId, providers }: { eventId: string; providers: Provider[] }) {
   const [state, action, pending] = useActionState(createPrintOrder.bind(null, eventId), {} as PrintFormState);
   const [qty, setQty] = useState(50);
   const [mode, setMode] = useState<PrintMode>("host");
@@ -43,7 +46,7 @@ export function PrintForm({ eventId }: { eventId: string }) {
         </p>
       )}
       {state.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
-      <button className="btn-primary" disabled={pending || !price}>{pending ? "Starting checkout…" : "Pay and order"}</button>
+      {pending ? <p className="text-sm text-muted">Starting checkout…</p> : <PayButtons providers={providers} />}
     </form>
   );
 }

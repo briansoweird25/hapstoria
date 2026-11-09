@@ -6,16 +6,16 @@ export const PRINT_LEAD_DAYS = 21;
 const DAY = 86_400_000;
 
 /**
- * PLACEHOLDER business numbers (USD cents). Replace with real print-partner cost × markup
+ * PLACEHOLDER business numbers (PHP centavos: 16000 = ₱160.00). Replace with real printer cost × markup
  * before launch; everything else reads from here.
  */
 const UNIT_TIERS = [
-  { minQty: 100, unitCents: 220 },
-  { minQty: 50, unitCents: 260 },
-  { minQty: 0, unitCents: 300 },
+  { minQty: 100, unitCents: 12000 },
+  { minQty: 50, unitCents: 14500 },
+  { minQty: 0, unitCents: 16000 },
 ];
-const SHIP_TO_HOST_CENTS = 800;
-const POSTAGE_PER_GUEST_CENTS = 150;
+const SHIP_TO_HOST_CENTS = 15000;
+const POSTAGE_PER_GUEST_CENTS = 6000;
 
 export type PrintMode = "host" | "guests";
 

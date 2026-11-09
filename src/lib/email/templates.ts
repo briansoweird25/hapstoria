@@ -57,3 +57,16 @@ export function expiryEmail(i: { eventTitle: string; kind: ExpiryKind; daysLeft:
     text: `${subject}\nDownload for free or keep with Memory Keeper: ${i.dashboardUrl}`,
   };
 }
+
+export function membershipEmail(i: { planLabel: string; kind: "m7" | "m1"; endsOn: string; renewUrl: string }): EmailContent {
+  const soon = i.kind === "m1";
+  const subject = soon ? `Your ${i.planLabel} membership ends tomorrow` : `Your ${i.planLabel} membership ends in 7 days`;
+  const body = `<p>Your <strong>${escapeHtml(i.planLabel)}</strong> membership ends on <strong>${escapeHtml(i.endsOn)}</strong>.</p>
+<p>${soon ? "Renew now so your albums stay safe." : "Renew any time: the new period is added on top of the days you have left, so nothing is lost."} You can pay with GCash, Maya, card or PayPal.</p>
+<p>Downloading your photos and videos is always free, whatever you decide.</p>`;
+  return {
+    subject,
+    html: layout(soon ? "Last day to renew" : "Time to renew", body, { label: "Renew my membership", url: i.renewUrl }),
+    text: `${subject}\nRenew: ${i.renewUrl}`,
+  };
+}

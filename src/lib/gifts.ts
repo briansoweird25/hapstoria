@@ -24,7 +24,7 @@ export function toCents(input: string): number | null {
 
 export function formatMoney(cents: number, currency: string): string {
   try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+    return new Intl.NumberFormat("en-PH", { style: "currency", currency }).format(cents / 100);
   } catch {
     return `${currency} ${(cents / 100).toFixed(2)}`;
   }
@@ -40,7 +40,7 @@ export const giftPledgeSchema = z
     target: z.enum(["fund", "item", "general"]),
     target_id: z.string().uuid().optional(),
     amount: z.string().default(""),
-    currency: z.string().trim().length(3).transform((s) => s.toUpperCase()).default("USD"),
+    currency: z.string().trim().length(3).transform((s) => s.toUpperCase()).default("PHP"),
     anonymous: bool.default(false),
     giver_name: z.string().trim().max(120).optional(),
     message: z.string().trim().max(500).optional(),

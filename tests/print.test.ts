@@ -3,7 +3,7 @@ import { MIN_QUANTITY, PRINT_LEAD_DAYS, orderByDate, printPriceCents, printOrder
 
 describe("print pricing", () => {
   it("prices bulk-to-host by quantity with volume discounts", () => {
-    expect(printPriceCents({ quantity: 25, mode: "host" }).totalCents).toBe(25 * 300 + 0 + 800);
+    expect(printPriceCents({ quantity: 25, mode: "host" }).totalCents).toBe(25 * 16000 + 15000); // PHP centavos
     expect(printPriceCents({ quantity: 100, mode: "host" }).unitCents).toBeLessThan(printPriceCents({ quantity: 25, mode: "host" }).unitCents);
   });
   it("direct mailing costs more per card than shipping to host", () => {

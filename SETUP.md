@@ -6,7 +6,7 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
 
 1. Create a new project (choose a region near your guests). Save the database password.
 2. **Database:** open *SQL Editor → New query* and run each file in `supabase/migrations/` **in order**
-   (`0001_init.sql`, `0002_billing.sql`, … `0009_review_fixes.sql`), one at a time. Each should say "Success".
+   (`0001_init.sql`, `0002_billing.sql`, … `0010_payments_ph.sql`), one at a time. Each should say "Success". If you already ran up to 0009, run only the new ones.
 3. **Storage:** *Storage* should now list a private bucket named `event-media`.
 4. **Keys:** *Project Settings → API*. Copy the Project URL, the `anon` public key, and the `service_role` key.
    The `service_role` key is secret: it goes only into Netlify's environment variables.
@@ -61,15 +61,30 @@ The same details are in Supabase under *Logs → Auth*.
    and call the `/api/cron/*` routes with `CRON_SECRET`. Check *Logs → Functions* after the first day.
    Netlify limits how long functions may run, so very large albums may need the jobs split up; see README.
 
-## 3. Stripe (payments)
+## 3. Payments: PayMongo (GCash, Maya, cards) and PayPal
 
-1. Create a Stripe account, then *Developers → API keys*: copy the secret key into `STRIPE_SECRET_KEY`.
-2. *Developers → Webhooks → Add endpoint*: URL `https://YOUR-DOMAIN/api/stripe/webhook`, events
-   `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
-   `customer.subscription.deleted`. Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
-3. Enable the *Customer portal* (Settings → Billing → Customer portal) so "Manage billing" works.
-4. For creator payouts, enable *Connect* (Express accounts) in your Stripe dashboard.
-5. Use Stripe test mode and card `4242 4242 4242 4242` until you are ready to go live.
+All prices are in Philippine pesos and live in `src/lib/billing.ts` (change them there). You can turn on one provider or
+both; a payment button only appears for a provider whose keys are set.
+
+**PayMongo** (GCash, Maya, cards):
+1. Create a PayMongo account and finish their business verification (needed to accept live payments).
+2. *Developers → API keys*: copy the **secret key** into `PAYMONGO_SECRET_KEY`. Start with the test (`sk_test_`) key.
+3. *Developers → Webhooks → Create*: URL `https://YOUR-SITE/api/paymongo/webhook`, event
+   `checkout_session.payment.paid`. Copy the webhook's **secret** into `PAYMONGO_WEBHOOK_SECRET`.
+4. Make sure GCash and Maya are enabled for your account in the PayMongo dashboard.
+
+**PayPal**:
+1. At developer.paypal.com, *Apps & Credentials*, create an app (sandbox first). Copy its Client ID and Secret into
+   `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`, and leave `PAYPAL_ENV=sandbox`.
+2. When you are ready for real money, create a **live** app, use its keys, and set `PAYPAL_ENV=live`.
+3. No webhook is needed: the money is captured when the customer returns to the site.
+
+**How memberships work:** Memory Keeper, Keeper Plus and Planner are *prepaid* (1 month or 12 months). Each payment adds
+time to the plan, and we email the owner 7 days and 1 day before it ends. GCash cannot charge a customer automatically each
+month, which is why the plans are not auto-renewing.
+
+**Creator payouts** are manual: creators enter a GCash number or PayPal email, and under `/admin` you start a payout,
+send the money yourself, and record the reference.
 
 ## 4. Email (Resend)
 
@@ -84,8 +99,8 @@ Create a Resend account, verify your sending domain, then set `RESEND_API_KEY` a
 | `ADMIN_EMAILS` | Comma-separated emails allowed to open `/admin` (creator/template review) |
 | `PRINT_NOTIFY_EMAIL` | Where paid print orders are announced |
 
-Three scheduled jobs run automatically: orphan-upload cleanup (daily), album lifecycle emails and purges (daily),
-creator payouts (monthly).
+Two scheduled jobs run automatically: orphan-upload cleanup (daily), and album lifecycle plus membership-ending
+emails and purges (daily).
 
 ## 6. Test like a customer
 
@@ -94,7 +109,7 @@ creator payouts (monthly).
 3. RSVP as a guest; watch the headcount update on the dashboard.
 4. Open the upload QR link, upload a photo and a greeting, then approve them under *Memories*.
 5. Open the album link and confirm only approved items show; try the collage and slideshow.
-6. In Stripe test mode, upgrade the event to Premium and subscribe to Memory Keeper; confirm the dashboard updates.
+6. In PayMongo test mode (and PayPal sandbox), upgrade the event to Premium and buy a Memory Keeper month; confirm the dashboard updates.
 7. Add a gift method and fund, then give a gift as a guest (named and anonymous).
 8. Create a creator profile, approve it from `/admin` (with your email in `ADMIN_EMAILS`), submit a template, approve it, buy it with a second account and apply it to an event.
 

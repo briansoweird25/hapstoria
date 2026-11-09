@@ -3,40 +3,39 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { env } from "@/lib/env";
-import { getStripe, stripeConfigured } from "@/lib/stripe/client";
+import { parseProvider, startCheckout } from "@/lib/payments/checkout";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function buyTemplate(formData: FormData) {
   const { supabase, user } = await requireUser();
   const id = z.string().uuid().safeParse(formData.get("template_id"));
+  const provider = parseProvider(formData.get("provider"));
   if (!id.success) redirect("/marketplace?error=invalid");
-  if (!stripeConfigured()) redirect("/marketplace?error=unavailable");
+  if (!provider) redirect("/marketplace?error=unavailable");
 
   const admin = createAdminClient();
   const { data: tpl } = await admin
-    .from("marketplace_templates").select("id,name,price_cents,status,creator_id").eq("id", id.data).maybeSingle();
+    .from("marketplace_templates")
+    .select("id,name,price_cents,status,creator_id")
+    .eq("id", id.data)
+    .maybeSingle();
   if (!tpl || tpl.status !== "approved") redirect("/marketplace?error=invalid");
   if (tpl.creator_id === user.id) redirect("/marketplace?error=own");
+  const { data: creator } = await admin.from("creator_profiles").select("status").eq("user_id", tpl.creator_id).maybeSingle();
+  if (creator?.status !== "approved") redirect("/marketplace?error=invalid"); // creator was suspended after approval
   const { data: owned } = await supabase.from("template_purchases").select("id").eq("template_id", tpl.id).eq("buyer_id", user.id).maybeSingle();
   if (owned) redirect("/marketplace?owned=1");
 
-  const session = await getStripe().checkout.sessions.create({
-    mode: "payment",
-    customer_email: user.email ?? undefined,
-    client_reference_id: user.id,
-    line_items: [{ quantity: 1, price_data: { currency: "usd", unit_amount: tpl.price_cents, product_data: { name: `Hapstoria template: ${tpl.name}` } } }],
-    metadata: { kind: "template", template_id: tpl.id, user_id: user.id },
-    success_url: `${env.siteUrl}/marketplace?purchased=1`,
-    cancel_url: `${env.siteUrl}/marketplace`,
-  });
-  const { error: orderError } = await admin.from("orders").insert({
-    user_id: user.id, kind: "template", amount_cents: tpl.price_cents, stripe_session_id: session.id,
+  const result = await startCheckout({
+    provider,
+    userId: user.id,
+    kind: "template",
+    amountCents: tpl.price_cents,
+    name: `Hapstoria template: ${tpl.name}`,
     meta: { template_id: tpl.id, price_cents: tpl.price_cents },
+    successPath: "/marketplace?purchased=1",
+    cancelPath: "/marketplace",
   });
-  if (orderError || !session.url) {
-    await getStripe().checkout.sessions.expire(session.id).catch(() => undefined);
-    redirect("/marketplace?error=checkout");
-  }
-  redirect(session.url);
+  if ("error" in result) redirect("/marketplace?error=checkout");
+  redirect(result.url);
 }

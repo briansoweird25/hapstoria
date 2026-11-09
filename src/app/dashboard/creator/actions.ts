@@ -4,9 +4,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { definitionFromSubmission, templateSubmissionSchema } from "@/lib/marketplace";
-import { env } from "@/lib/env";
-import { getStripe, stripeConfigured } from "@/lib/stripe/client";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 const profileSchema = z.object({
   display_name: z.string().trim().min(2).max(80),
@@ -40,25 +37,16 @@ export async function submitTemplate(_prev: SubmitState, formData: FormData): Pr
   return { ok: true };
 }
 
-export async function startConnectOnboarding() {
-  const { user } = await requireUser();
-  if (!stripeConfigured()) redirect("/dashboard/creator?notice=payments_unavailable");
-  const admin = createAdminClient();
-  const { data: profile } = await admin.from("creator_profiles").select("status,stripe_account_id,country").eq("user_id", user.id).maybeSingle();
-  if (!profile || profile.status !== "approved") redirect("/dashboard/creator?notice=not_approved");
-  const stripe = getStripe();
-  let account = profile.stripe_account_id;
-  if (!account) {
-    const created = await stripe.accounts.create({
-      type: "express", email: user.email ?? undefined, country: profile.country ?? undefined,
-      capabilities: { transfers: { requested: true } }, metadata: { user_id: user.id },
-    });
-    account = created.id;
-    await admin.from("creator_profiles").update({ stripe_account_id: account }).eq("user_id", user.id);
-  }
-  const link = await stripe.accountLinks.create({
-    account, type: "account_onboarding",
-    refresh_url: `${env.siteUrl}/dashboard/creator?notice=connect_retry`, return_url: `${env.siteUrl}/dashboard/creator?notice=connected`,
-  });
-  redirect(link.url);
+const payoutSchema = z.object({
+  payout_method: z.enum(["gcash", "paypal"]),
+  payout_details: z.string().trim().min(3).max(200),
+});
+
+/** Where the creator wants earnings sent. Payouts are made by hand from the admin page (GCash or PayPal). */
+export async function savePayoutDetails(formData: FormData) {
+  const { supabase, user } = await requireUser();
+  const parsed = payoutSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) redirect("/dashboard/creator?notice=invalid_payout");
+  const { error } = await supabase.from("creator_profiles").update(parsed.data).eq("user_id", user.id);
+  redirect(`/dashboard/creator?notice=${error ? "failed" : "payout_saved"}`);
 }

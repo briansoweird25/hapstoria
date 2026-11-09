@@ -48,3 +48,17 @@ describe("email templates", () => {
     expect(expiryEmail({ eventTitle: "T", kind: "grace", daysLeft: -2, dashboardUrl: "u" }).subject).toMatch(/expired/i);
   });
 });
+
+import { membershipEmail } from "@/lib/email/templates";
+describe("membershipEmail", () => {
+  it("names the plan, date and renewal link, and escapes HTML", () => {
+    const m = membershipEmail({ planLabel: "Memory <Keeper>", kind: "m7", endsOn: "December 9, 2026", renewUrl: "https://x/dashboard/billing" });
+    expect(m.subject).toMatch(/7 days|week/i);
+    expect(m.html).toContain("December 9, 2026");
+    expect(m.html).toContain("https://x/dashboard/billing");
+    expect(m.html).not.toContain("<Keeper>");
+  });
+  it("uses stronger wording the day before", () => {
+    expect(membershipEmail({ planLabel: "Planner", kind: "m1", endsOn: "x", renewUrl: "u" }).subject).toMatch(/tomorrow/i);
+  });
+});

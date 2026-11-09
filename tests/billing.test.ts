@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALBUM_DAYS, FREE_GUEST_LIMIT, GRACE_DAYS, albumStatus, canCreateEvent, guestLimit,
   hasActiveSubscription, latestEntitlementEnd, storageQuotaBytes, tierFor,
+  membershipDays, extendedUntil, membershipReminderKind,
 } from "@/lib/billing";
 
 const day = 86_400_000;
@@ -67,9 +68,9 @@ describe("albumStatus", () => {
 import { subscriptionAmount } from "@/lib/billing";
 describe("subscriptionAmount", () => {
   it("yearly is ten months", () => {
-    expect(subscriptionAmount("keeper", "month")).toBe(999);
-    expect(subscriptionAmount("keeper", "year")).toBe(9990);
-    expect(subscriptionAmount("planner", "year")).toBe(49000);
+    expect(subscriptionAmount("keeper", "month")).toBe(54900); // PHP centavos
+    expect(subscriptionAmount("keeper", "year")).toBe(549000);
+    expect(subscriptionAmount("planner", "year")).toBe(2699000);
   });
 });
 
@@ -91,5 +92,56 @@ describe("entitlement edge cases (review fixes)", () => {
   it("latestEntitlementEnd picks the newest end among ended subscriptions", () => {
     expect(latestEntitlementEnd([{ status: "canceled", tier: "keeper", ended_at: ago(30) }, { status: "canceled", tier: "keeper", ended_at: ago(10) }])).toBe(ago(10));
     expect(latestEntitlementEnd([{ status: "active", tier: "keeper", ended_at: null }])).toBeNull();
+  });
+});
+
+describe("prepaid memberships (valid_until)", () => {
+  const future = new Date(now.getTime() + 5 * day).toISOString();
+  const past = new Date(now.getTime() - 5 * day).toISOString();
+  it("is active only while valid_until is in the future", () => {
+    expect(hasActiveSubscription({ status: "active", tier: "keeper", valid_until: future }, now)).toBe(true);
+    expect(hasActiveSubscription({ status: "active", tier: "keeper", valid_until: past }, now)).toBe(false);
+  });
+  it("rows without valid_until keep the status-based rule", () => {
+    expect(hasActiveSubscription({ status: "active", tier: "keeper" }, now)).toBe(true);
+    expect(hasActiveSubscription({ status: "canceled", tier: "keeper" }, now)).toBe(false);
+  });
+  it("tierFor ignores lapsed prepaid memberships", () => {
+    expect(tierFor([{ status: "active", tier: "planner", valid_until: past }, { status: "active", tier: "keeper", valid_until: future }], now)).toBe("keeper");
+  });
+  it("a lapsed membership ends on its valid_until date", () => {
+    expect(latestEntitlementEnd([{ status: "active", tier: "keeper", valid_until: past }], now)).toBe(past);
+    expect(latestEntitlementEnd([{ status: "active", tier: "keeper", valid_until: future }], now)).toBeNull();
+  });
+});
+
+describe("membership length", () => {
+  it("is 30 days per month and 365 per year", () => {
+    expect(membershipDays("month")).toBe(30);
+    expect(membershipDays("year")).toBe(365);
+  });
+  it("extends from the later of now and the current end", () => {
+    const end = new Date(now.getTime() + 10 * day).toISOString();
+    expect(extendedUntil(end, 30, now)).toBe(new Date(now.getTime() + 40 * day).toISOString());
+    expect(extendedUntil(null, 30, now)).toBe(new Date(now.getTime() + 30 * day).toISOString());
+    const lapsed = new Date(now.getTime() - 10 * day).toISOString();
+    expect(extendedUntil(lapsed, 30, now)).toBe(new Date(now.getTime() + 30 * day).toISOString());
+  });
+  it("reminds 7 and 1 days before a membership ends, nothing otherwise", () => {
+    expect(membershipReminderKind(new Date(now.getTime() + 7 * day).toISOString(), now)).toBe("m7");
+    expect(membershipReminderKind(new Date(now.getTime() + 3 * day).toISOString(), now)).toBe("m7");
+    expect(membershipReminderKind(new Date(now.getTime() + 12 * 3600_000).toISOString(), now)).toBe("m1");
+    expect(membershipReminderKind(new Date(now.getTime() + 30 * day).toISOString(), now)).toBeNull();
+    expect(membershipReminderKind(new Date(now.getTime() - day).toISOString(), now)).toBeNull();
+  });
+});
+
+import { formatPeso, centsToDecimal } from "@/lib/money";
+describe("money helpers", () => {
+  it("formats pesos and decimals", () => {
+    expect(formatPeso(199900)).toContain("1,999");
+    expect(formatPeso(199900)).toContain("₱");
+    expect(centsToDecimal(199900)).toBe("1999.00");
+    expect(centsToDecimal(54950)).toBe("549.50");
   });
 });

@@ -14,14 +14,14 @@
 | Public invitation + guest RSVP (no account); confirmation email | Done (email needs Resend keys) |
 | Host dashboard: headcount, meals, guest list, CSV/paste import, share link, QR, RSVP reminders | Done |
 | Guest photo/video/greeting upload; host moderation; public album; free zip download | Done |
-| **Billing (Stripe):** free plan (30 guests, 1 event), $36 Premium per event, Memory Keeper $9.99 / Plus $19.99, Planner $49 (monthly or yearly) | Done (needs Stripe keys) |
+| **Billing (PayMongo GCash/Maya/cards + PayPal, pesos):** free plan (30 guests, 1 event), ₱1,999 Premium per event, prepaid Memory Keeper ₱549 / Plus ₱1,099 / Planner ₱2,699 per month (12 months for the price of 10), renewal reminder emails | Done (needs PayMongo / PayPal keys; untested against live providers) |
 | **Album lifecycle:** 30-day (free) / 90-day (premium) albums, expiry emails at 30/7/1 days, grace period, purge; subscribers keep everything | Done (daily cron) |
 | **Collage maker** (grid, mosaic, filmstrip, PNG download) and full-screen **slideshow** | Done |
-| **Printed invitations:** pricing, 21-day lead-time rule, Stripe checkout, order tracking | Done; fulfilment is manual (see below) |
+| **Printed invitations:** pricing, 21-day lead-time rule, GCash/card/PayPal checkout, order tracking | Done; fulfilment is manual (see below) |
 | **Gift registry:** payment methods with QR/links, cash funds, wishlist with reservations, anonymous giving, gift wall, thank-you tracker | Done |
 | **Seating plan** (capacity rules, auto-seat) and **budget tracker** | Done |
 | **Planner workspace:** all-events overview, team roles (editor/viewer) with invites, business profile, white-label invitation pages | Done |
-| **Creator marketplace:** apply, template studio with contrast check, admin review, per-template purchase, revenue split, Stripe Connect payouts | Done (payouts untested against live Stripe) |
+| **Creator marketplace:** apply, template studio with contrast check, admin review, per-template purchase, revenue split, manual GCash/PayPal payouts from `/admin` | Done |
 
 Not built: video highlight reels (needs a render API such as Shotstack), direct mailing of print orders to
 each guest (the order is recorded and we email to collect addresses), automatic print-partner API
@@ -58,7 +58,7 @@ Security model
 
 ## Roadmap
 
-1. Stripe: Event Pass, Memory Keeper subscriptions, 3-month expiry with reminder emails (Resend).
+1. Automatic recurring billing (needs a card-based provider; GCash cannot auto-renew).
 2. Collage and slideshow templates (render via a video API such as Shotstack/Creatomate).
 3. Gift registry (bank/GCash QR, PayPal links, anonymous giving), seating plan, budget.
 4. Printed invitations (Gelato API), planner workspace, creator marketplace.

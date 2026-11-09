@@ -7,7 +7,7 @@ import { formatMoney } from "@/lib/gifts";
 import { addBudgetItem, deleteBudgetItem, setTotalBudget, togglePaid } from "./actions";
 
 export const metadata: Metadata = { title: "Budget" };
-const usd = (c: number) => formatMoney(c, "USD");
+const usd = (c: number) => formatMoney(c, "PHP");
 
 export default async function BudgetPage({ params, searchParams }: PageProps<"/dashboard/events/[id]/budget">) {
   const { id } = await params;
@@ -25,7 +25,7 @@ export default async function BudgetPage({ params, searchParams }: PageProps<"/d
       <div>
         <Link href={`/dashboard/events/${id}`} className="text-sm text-muted hover:text-ink">← {event.title}</Link>
         <h1 className="font-serif text-4xl">Budget</h1>
-        <p className="text-xs text-muted">Amounts are tracked in USD.</p>
+        <p className="text-xs text-muted">Amounts are in Philippine pesos (PHP).</p>
         {sp.notice && <p role="alert" className="mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">Please check the amounts you entered.</p>}
       </div>
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">

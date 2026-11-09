@@ -5,9 +5,9 @@ import { toCents } from "@/lib/gifts";
 
 /** PLACEHOLDER business decision (basis points to the creator). 7000 = 70%. Change here only. */
 export const CREATOR_SHARE_BPS = 7000;
-export const MIN_PRICE_CENTS = 300;
-export const MAX_PRICE_CENTS = 9900;
-export const MIN_PAYOUT_CENTS = 2000;
+export const MIN_PRICE_CENTS = 15_000; // ₱150
+export const MAX_PRICE_CENTS = 500_000; // ₱5,000
+export const MIN_PAYOUT_CENTS = 50_000; // ₱500
 export const MIN_TEXT_CONTRAST = 4.5;
 
 export function splitRevenue(priceCents: number): { creatorCents: number; platformCents: number } {
@@ -37,7 +37,7 @@ export const templateSubmissionSchema = z
     kind: z.enum(KIND_IDS),
     culture: z.string().trim().max(60).default(""),
     description: z.string().trim().max(300).default(""),
-    price: z.string().refine((v) => { const c = toCents(v); return c !== null && c >= MIN_PRICE_CENTS && c <= MAX_PRICE_CENTS; }, "Price must be between $3 and $99"),
+    price: z.string().refine((v) => { const c = toCents(v); return c !== null && c >= MIN_PRICE_CENTS && c <= MAX_PRICE_CENTS; }, "Price must be between ₱150 and ₱5,000"),
     font: z.enum(["serif", "script", "sans", "display"]),
     bg: hex, surface: hex, text: hex, accent: hex, accentSoft: hex,
   })
