@@ -17,6 +17,18 @@ About 30–45 minutes, no coding. You need free accounts on [GitHub](https://git
    redirect URI is `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`), then set `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`
    in Netlify and redeploy. The button stays hidden until you do. Email sign-in links work without it.
 
+### Log in, create account, and passwords
+
+The login page has **Log in** and **Create account** tabs (email + password), plus "Forgot password" and an
+"Email me a link instead" option. In Supabase, under *Authentication → Providers → Email*, make sure Email is enabled.
+
+- **Confirm email** (same page): when on, new accounts must click a confirmation link before they can log in. That is
+  safer, and it needs a working email sender (below). When off, people are logged in immediately after creating an account.
+- Password rules (8+ characters) are enforced by the app; you can also raise Supabase's minimum under
+  *Authentication → Sign In / Providers → Email → Minimum password length*.
+- Password reset and confirmation links go to `https://YOUR-SITE/auth/callback`, so that address must be in
+  *Authentication → URL Configuration → Redirect URLs* (see step 1.5).
+
 ### Sign-in emails (important)
 
 Supabase's built-in email sender is only for trying things out: it sends a handful of emails per hour and, on

@@ -23,7 +23,7 @@ export default function Home() {
               Beautiful digital invitations, effortless RSVPs, and one shared album for everyone&apos;s photos, videos and greetings.
             </p>
             <div className="rise-3 mt-8 flex flex-wrap gap-3">
-              <Link href="/login?next=/dashboard/events/new" className="btn-primary">Create your invitation</Link>
+              <Link href="/login?mode=signup&next=/dashboard/events/new" className="btn-primary">Create your invitation</Link>
               <Link href="/templates" className="btn-ghost">Browse templates</Link>
             </div>
           </div>

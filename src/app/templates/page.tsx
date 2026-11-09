@@ -33,7 +33,7 @@ export default async function TemplatesPage({ searchParams }: PageProps<"/templa
                   <p className="font-medium">{t.name}</p>
                   <p className="text-xs text-muted">{t.description}</p>
                 </div>
-                <Link href={`/login?next=${encodeURIComponent(`/dashboard/events/new?template=${t.id}`)}`} className="btn-soft shrink-0">Use</Link>
+                <Link href={`/login?mode=signup&next=${encodeURIComponent(`/dashboard/events/new?template=${t.id}`)}`} className="btn-soft shrink-0">Use</Link>
               </div>
             </li>
           ))}
